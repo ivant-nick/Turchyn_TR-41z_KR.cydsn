@@ -1,0 +1,3897 @@
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m0
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 0
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"main.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.ISR_SignalStart,"ax",%progbits
+  20              		.align	2
+  21              		.global	ISR_SignalStart
+  22              		.code	16
+  23              		.thumb_func
+  24              		.type	ISR_SignalStart, %function
+  25              	ISR_SignalStart:
+  26              	.LFB32:
+  27              		.file 1 "main.c"
+   1:main.c        **** /* ========================================
+   2:main.c        ****  *
+   3:main.c        ****  * Copyright YOUR COMPANY, THE YEAR
+   4:main.c        ****  * All Rights Reserved
+   5:main.c        ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:main.c        ****  *
+   7:main.c        ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:main.c        ****  * WHICH IS THE PROPERTY OF your company.
+   9:main.c        ****  *
+  10:main.c        ****  * ========================================
+  11:main.c        **** */
+  12:main.c        **** #include <project.h> 
+  13:main.c        **** #include <math.h>
+  14:main.c        **** 
+  15:main.c        **** int InProgres;
+  16:main.c        **** int Mode = 1;
+  17:main.c        ****  
+  18:main.c        **** int MainIdx = 0; // index to the current sample of carrier (sinus)
+  19:main.c        **** int MainIdxExpFadingMod1 = 0;
+  20:main.c        **** int MainIdxExpFadingMod2 = 0;
+  21:main.c        **** int ProcessedSample; // values of the processed sample 
+  22:main.c        ****  
+  23:main.c        **** int NumOfSamplesInPeriod = 20; 
+  24:main.c        **** int NumOfSamplesInPeriodExpFadingMod1 = 400;
+  25:main.c        **** int NumOfSamplesInPeriodExpFadingMod2 = 1200;
+  26:main.c        **** const uint8 Samples[] = { 
+  27:main.c        ****     128, 167, 203, 231, 249, 255, 249, 231, 203, 167, 128, 89, 53, 25, 7, 1, 7, 25, 53, 89 
+  28:main.c        **** }; 
+  29:main.c        **** const uint8 SamplesExpFadingMod1[] = { 
+  30:main.c        ****  127, 166, 199, 225, 241, 245, 237, 220, 193, 161, 127, 94, 65, 42, 29, 26, 32, 47, 70, 97, 127, 15
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 2
+
+
+  31:main.c        ****  }; 
+  32:main.c        **** const uint8 SamplesExpFadingMod2[] = { 
+  33:main.c        ****     127, 166, 201, 228, 245, 251, 244, 226, 199, 165, 127, 90, 57, 31, 14, 9, 16, 33, 59, 91, 127, 
+  34:main.c        ****  };
+  35:main.c        **** /**************************************************  
+  36:main.c        **** Interrupt Service Routine: Start Signal Occurence  
+  37:main.c        **** **************************************************/ 
+  38:main.c        **** CY_ISR(ISR_SignalStart) 
+  39:main.c        **** { 
+  28              		.loc 1 39 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32 0000 10B5     		push	{r4, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 4, -8
+  35              		.cfi_offset 14, -4
+  40:main.c        ****     InProgres = 1;
+  36              		.loc 1 40 0
+  37 0002 0122     		movs	r2, #1
+  38 0004 0D4B     		ldr	r3, .L2
+  39 0006 1A60     		str	r2, [r3]
+  41:main.c        ****  	/* Initialize variables before waveform start */ 
+  42:main.c        ****  	MainIdx = 0; // Set pointer to the first sample 
+  40              		.loc 1 42 0
+  41 0008 0022     		movs	r2, #0
+  42 000a 0D4B     		ldr	r3, .L2+4
+  43 000c 1A60     		str	r2, [r3]
+  43:main.c        ****  	/* Disable Interrupts from this source */  	
+  44:main.c        ****     isr_Start_Disable();
+  44              		.loc 1 44 0
+  45 000e FFF7FEFF 		bl	isr_Start_Disable
+  46              	.LVL0:
+  45:main.c        ****     isr_Start_1_Disable();
+  47              		.loc 1 45 0
+  48 0012 FFF7FEFF 		bl	isr_Start_1_Disable
+  49              	.LVL1:
+  46:main.c        ****  	 /* Start Timers */ 
+  47:main.c        ****     Green_Led_Start_Write(1);
+  50              		.loc 1 47 0
+  51 0016 0120     		movs	r0, #1
+  52 0018 FFF7FEFF 		bl	Green_Led_Start_Write
+  53              	.LVL2:
+  48:main.c        ****     Green_Led_Start_Board_Write(0);
+  54              		.loc 1 48 0
+  55 001c 0020     		movs	r0, #0
+  56 001e FFF7FEFF 		bl	Green_Led_Start_Board_Write
+  57              	.LVL3:
+  49:main.c        ****     LCD_Char_1_Position(1,9);
+  58              		.loc 1 49 0
+  59 0022 0921     		movs	r1, #9
+  60 0024 0120     		movs	r0, #1
+  61 0026 FFF7FEFF 		bl	LCD_Char_1_Position
+  62              	.LVL4:
+  50:main.c        ****     LCD_Char_1_PrintString("Start  ");
+  63              		.loc 1 50 0
+  64 002a 0648     		ldr	r0, .L2+8
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 3
+
+
+  65 002c FFF7FEFF 		bl	LCD_Char_1_PrintString
+  66              	.LVL5:
+  51:main.c        ****  	Timer_Main_Start(); 
+  67              		.loc 1 51 0
+  68 0030 FFF7FEFF 		bl	Timer_Main_Start
+  69              	.LVL6:
+  52:main.c        ****  	Timer_Duration_Start();
+  70              		.loc 1 52 0
+  71 0034 FFF7FEFF 		bl	Timer_Duration_Start
+  72              	.LVL7:
+  53:main.c        **** } 
+  73              		.loc 1 53 0
+  74              		@ sp needed
+  75 0038 10BD     		pop	{r4, pc}
+  76              	.L3:
+  77 003a C046     		.align	2
+  78              	.L2:
+  79 003c 00000000 		.word	InProgres
+  80 0040 00000000 		.word	.LANCHOR0
+  81 0044 00000000 		.word	.LC2
+  82              		.cfi_endproc
+  83              	.LFE32:
+  84              		.size	ISR_SignalStart, .-ISR_SignalStart
+  85              		.section	.text.ISR_GenerateSample,"ax",%progbits
+  86              		.align	2
+  87              		.global	ISR_GenerateSample
+  88              		.code	16
+  89              		.thumb_func
+  90              		.type	ISR_GenerateSample, %function
+  91              	ISR_GenerateSample:
+  92              	.LFB33:
+  54:main.c        **** /**************************************************   
+  55:main.c        **** Interrupt Service Routine: Generate one sample and move pointer to the next one  
+  56:main.c        **** **************************************************/ 
+  57:main.c        **** CY_ISR(ISR_GenerateSample) 
+  58:main.c        **** { 	 
+  93              		.loc 1 58 0
+  94              		.cfi_startproc
+  95              		@ args = 0, pretend = 0, frame = 0
+  96              		@ frame_needed = 0, uses_anonymous_args = 0
+  97 0000 10B5     		push	{r4, lr}
+  98              		.cfi_def_cfa_offset 8
+  99              		.cfi_offset 4, -8
+ 100              		.cfi_offset 14, -4
+  59:main.c        ****         if (InProgres == 1)
+ 101              		.loc 1 59 0
+ 102 0002 1F4B     		ldr	r3, .L8
+ 103 0004 1B68     		ldr	r3, [r3]
+ 104 0006 012B     		cmp	r3, #1
+ 105 0008 25D1     		bne	.L5
+  60:main.c        ****         {
+  61:main.c        ****             if (Mode == 1) 
+ 106              		.loc 1 61 0
+ 107 000a 1E4B     		ldr	r3, .L8+4
+ 108 000c 1B68     		ldr	r3, [r3]
+ 109 000e 012B     		cmp	r3, #1
+ 110 0010 0FD1     		bne	.L6
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 4
+
+
+  62:main.c        ****             {
+  63:main.c        ****                 ProcessedSample = SamplesExpFadingMod1[MainIdxExpFadingMod1];
+ 111              		.loc 1 63 0
+ 112 0012 1D49     		ldr	r1, .L8+8
+ 113 0014 4A68     		ldr	r2, [r1, #4]
+ 114 0016 1D48     		ldr	r0, .L8+12
+ 115 0018 845C     		ldrb	r4, [r0, r2]
+ 116 001a 1D48     		ldr	r0, .L8+16
+ 117 001c 0460     		str	r4, [r0]
+  64:main.c        ****                 MainIdxExpFadingMod1++;
+ 118              		.loc 1 64 0
+ 119 001e 0132     		adds	r2, r2, #1
+ 120 0020 4A60     		str	r2, [r1, #4]
+  65:main.c        ****                 if (MainIdxExpFadingMod1 >= NumOfSamplesInPeriodExpFadingMod1) 
+ 121              		.loc 1 65 0
+ 122 0022 1849     		ldr	r1, .L8+4
+ 123 0024 4968     		ldr	r1, [r1, #4]
+ 124 0026 8A42     		cmp	r2, r1
+ 125 0028 03DB     		blt	.L6
+  66:main.c        ****  	 	        { 
+  67:main.c        ****  	 	 	        MainIdxExpFadingMod1 = 399;
+ 126              		.loc 1 67 0
+ 127 002a 9021     		movs	r1, #144
+ 128 002c FF31     		adds	r1, r1, #255
+ 129 002e 164A     		ldr	r2, .L8+8
+ 130 0030 5160     		str	r1, [r2, #4]
+ 131              	.L6:
+  68:main.c        ****                 }
+  69:main.c        ****             }
+  70:main.c        ****             if (Mode == 2) 
+ 132              		.loc 1 70 0
+ 133 0032 022B     		cmp	r3, #2
+ 134 0034 1FD1     		bne	.L7
+  71:main.c        ****             {
+  72:main.c        ****                 ProcessedSample = SamplesExpFadingMod2[MainIdxExpFadingMod2];
+ 135              		.loc 1 72 0
+ 136 0036 1449     		ldr	r1, .L8+8
+ 137 0038 8B68     		ldr	r3, [r1, #8]
+ 138 003a 164A     		ldr	r2, .L8+20
+ 139 003c D218     		adds	r2, r2, r3
+ 140 003e 107C     		ldrb	r0, [r2, #16]
+ 141 0040 134A     		ldr	r2, .L8+16
+ 142 0042 1060     		str	r0, [r2]
+  73:main.c        ****                 MainIdxExpFadingMod2++;
+ 143              		.loc 1 73 0
+ 144 0044 0133     		adds	r3, r3, #1
+ 145 0046 8B60     		str	r3, [r1, #8]
+  74:main.c        ****                 if (MainIdxExpFadingMod2 >= NumOfSamplesInPeriodExpFadingMod2) 
+ 146              		.loc 1 74 0
+ 147 0048 0E4A     		ldr	r2, .L8+4
+ 148 004a 9268     		ldr	r2, [r2, #8]
+ 149 004c 9342     		cmp	r3, r2
+ 150 004e 12DB     		blt	.L7
+  75:main.c        ****  	 	        { 
+  76:main.c        ****  	 	 	        MainIdxExpFadingMod2 = 1199;
+ 151              		.loc 1 76 0
+ 152 0050 114A     		ldr	r2, .L8+24
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 5
+
+
+ 153 0052 8A60     		str	r2, [r1, #8]
+ 154 0054 0FE0     		b	.L7
+ 155              	.L5:
+  77:main.c        ****                 }
+  78:main.c        ****             }
+  79:main.c        ****         }
+  80:main.c        ****         else
+  81:main.c        ****         {
+  82:main.c        ****             ProcessedSample = Samples[MainIdx];
+ 156              		.loc 1 82 0
+ 157 0056 0C49     		ldr	r1, .L8+8
+ 158 0058 0B68     		ldr	r3, [r1]
+ 159 005a 104A     		ldr	r2, .L8+28
+ 160 005c D218     		adds	r2, r2, r3
+ 161 005e 4020     		movs	r0, #64
+ 162 0060 105C     		ldrb	r0, [r2, r0]
+ 163 0062 0B4A     		ldr	r2, .L8+16
+ 164 0064 1060     		str	r0, [r2]
+  83:main.c        ****             MainIdx++;
+ 165              		.loc 1 83 0
+ 166 0066 0133     		adds	r3, r3, #1
+ 167 0068 0B60     		str	r3, [r1]
+  84:main.c        ****             if (MainIdx == NumOfSamplesInPeriod) 
+ 168              		.loc 1 84 0
+ 169 006a 064A     		ldr	r2, .L8+4
+ 170 006c D268     		ldr	r2, [r2, #12]
+ 171 006e 9342     		cmp	r3, r2
+ 172 0070 01D1     		bne	.L7
+  85:main.c        ****  	 	    { 
+  86:main.c        ****  	 	 	    MainIdx = 0; // reset of MainIdx if it reach of the last element of Samples vector 
+ 173              		.loc 1 86 0
+ 174 0072 0022     		movs	r2, #0
+ 175 0074 0A60     		str	r2, [r1]
+ 176              	.L7:
+  87:main.c        ****  	 	    }
+  88:main.c        ****         }
+  89:main.c        ****             /* Write Processed Sample to DAC */ 
+  90:main.c        ****  	 	IDAC_1_SetValue(ProcessedSample);
+ 177              		.loc 1 90 0
+ 178 0076 064B     		ldr	r3, .L8+16
+ 179 0078 1868     		ldr	r0, [r3]
+ 180 007a FFF7FEFF 		bl	IDAC_1_SetValue
+ 181              	.LVL8:
+  91:main.c        ****         
+  92:main.c        **** } 
+ 182              		.loc 1 92 0
+ 183              		@ sp needed
+ 184 007e 10BD     		pop	{r4, pc}
+ 185              	.L9:
+ 186              		.align	2
+ 187              	.L8:
+ 188 0080 00000000 		.word	InProgres
+ 189 0084 00000000 		.word	.LANCHOR1
+ 190 0088 00000000 		.word	.LANCHOR0
+ 191 008c 00000000 		.word	.LANCHOR2
+ 192 0090 00000000 		.word	ProcessedSample
+ 193 0094 80010000 		.word	.LANCHOR3
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 6
+
+
+ 194 0098 AF040000 		.word	1199
+ 195 009c 00060000 		.word	.LANCHOR4
+ 196              		.cfi_endproc
+ 197              	.LFE33:
+ 198              		.size	ISR_GenerateSample, .-ISR_GenerateSample
+ 199              		.section	.text.ISR_StopGenerate,"ax",%progbits
+ 200              		.align	2
+ 201              		.global	ISR_StopGenerate
+ 202              		.code	16
+ 203              		.thumb_func
+ 204              		.type	ISR_StopGenerate, %function
+ 205              	ISR_StopGenerate:
+ 206              	.LFB34:
+  93:main.c        **** /**************************************************  
+  94:main.c        **** Interrupt Service Routine: Stop Samples Generation  
+  95:main.c        **** **************************************************/ 
+  96:main.c        **** CY_ISR(ISR_StopGenerate) 
+  97:main.c        **** { 
+ 207              		.loc 1 97 0
+ 208              		.cfi_startproc
+ 209              		@ args = 0, pretend = 0, frame = 0
+ 210              		@ frame_needed = 0, uses_anonymous_args = 0
+ 211 0000 10B5     		push	{r4, lr}
+ 212              		.cfi_def_cfa_offset 8
+ 213              		.cfi_offset 4, -8
+ 214              		.cfi_offset 14, -4
+  98:main.c        ****  	InProgres = 0;
+ 215              		.loc 1 98 0
+ 216 0002 0024     		movs	r4, #0
+ 217 0004 0C4B     		ldr	r3, .L11
+ 218 0006 1C60     		str	r4, [r3]
+  99:main.c        ****  	Timer_Duration_Stop();
+ 219              		.loc 1 99 0
+ 220 0008 FFF7FEFF 		bl	Timer_Duration_Stop
+ 221              	.LVL9:
+ 100:main.c        ****     MainIdxExpFadingMod1 = 0;
+ 222              		.loc 1 100 0
+ 223 000c 0B4B     		ldr	r3, .L11+4
+ 224 000e 5C60     		str	r4, [r3, #4]
+ 101:main.c        ****     MainIdxExpFadingMod2 = 0;
+ 225              		.loc 1 101 0
+ 226 0010 9C60     		str	r4, [r3, #8]
+ 102:main.c        ****     Green_Led_Start_Write(0);
+ 227              		.loc 1 102 0
+ 228 0012 0020     		movs	r0, #0
+ 229 0014 FFF7FEFF 		bl	Green_Led_Start_Write
+ 230              	.LVL10:
+ 103:main.c        ****     Green_Led_Start_Board_Write(1);
+ 231              		.loc 1 103 0
+ 232 0018 0120     		movs	r0, #1
+ 233 001a FFF7FEFF 		bl	Green_Led_Start_Board_Write
+ 234              	.LVL11:
+ 104:main.c        ****     LCD_Char_1_ClearDisplay();
+ 235              		.loc 1 104 0
+ 236 001e 0120     		movs	r0, #1
+ 237 0020 FFF7FEFF 		bl	LCD_Char_1_WriteControl
+ 238              	.LVL12:
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 7
+
+
+ 105:main.c        ****  	/* Clear interrupt flag and enable interrupt from Start signal */  	
+ 106:main.c        ****     
+ 107:main.c        ****     isr_Start_1_Enable();
+ 239              		.loc 1 107 0
+ 240 0024 FFF7FEFF 		bl	isr_Start_1_Enable
+ 241              	.LVL13:
+ 108:main.c        ****  	isr_Start_Enable(); 
+ 242              		.loc 1 108 0
+ 243 0028 FFF7FEFF 		bl	isr_Start_Enable
+ 244              	.LVL14:
+ 109:main.c        ****     
+ 110:main.c        ****     isr_Start_1_ClearPending();
+ 245              		.loc 1 110 0
+ 246 002c FFF7FEFF 		bl	isr_Start_1_ClearPending
+ 247              	.LVL15:
+ 111:main.c        ****     isr_Start_ClearPending();   
+ 248              		.loc 1 111 0
+ 249 0030 FFF7FEFF 		bl	isr_Start_ClearPending
+ 250              	.LVL16:
+ 112:main.c        **** } 
+ 251              		.loc 1 112 0
+ 252              		@ sp needed
+ 253 0034 10BD     		pop	{r4, pc}
+ 254              	.L12:
+ 255 0036 C046     		.align	2
+ 256              	.L11:
+ 257 0038 00000000 		.word	InProgres
+ 258 003c 00000000 		.word	.LANCHOR0
+ 259              		.cfi_endproc
+ 260              	.LFE34:
+ 261              		.size	ISR_StopGenerate, .-ISR_StopGenerate
+ 262              		.section	.text.ISR_Mode_1,"ax",%progbits
+ 263              		.align	2
+ 264              		.global	ISR_Mode_1
+ 265              		.code	16
+ 266              		.thumb_func
+ 267              		.type	ISR_Mode_1, %function
+ 268              	ISR_Mode_1:
+ 269              	.LFB35:
+ 113:main.c        **** CY_ISR(ISR_Mode_1)
+ 114:main.c        **** {
+ 270              		.loc 1 114 0
+ 271              		.cfi_startproc
+ 272              		@ args = 0, pretend = 0, frame = 0
+ 273              		@ frame_needed = 0, uses_anonymous_args = 0
+ 274 0000 10B5     		push	{r4, lr}
+ 275              		.cfi_def_cfa_offset 8
+ 276              		.cfi_offset 4, -8
+ 277              		.cfi_offset 14, -4
+ 115:main.c        ****     Mode = 1;
+ 278              		.loc 1 115 0
+ 279 0002 0122     		movs	r2, #1
+ 280 0004 044B     		ldr	r3, .L14
+ 281 0006 1A60     		str	r2, [r3]
+ 116:main.c        ****     Mode_1_LED_Write(1);
+ 282              		.loc 1 116 0
+ 283 0008 0120     		movs	r0, #1
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 8
+
+
+ 284 000a FFF7FEFF 		bl	Mode_1_LED_Write
+ 285              	.LVL17:
+ 117:main.c        ****     Mode_2_LED_Write(0);
+ 286              		.loc 1 117 0
+ 287 000e 0020     		movs	r0, #0
+ 288 0010 FFF7FEFF 		bl	Mode_2_LED_Write
+ 289              	.LVL18:
+ 118:main.c        **** }
+ 290              		.loc 1 118 0
+ 291              		@ sp needed
+ 292 0014 10BD     		pop	{r4, pc}
+ 293              	.L15:
+ 294 0016 C046     		.align	2
+ 295              	.L14:
+ 296 0018 00000000 		.word	.LANCHOR1
+ 297              		.cfi_endproc
+ 298              	.LFE35:
+ 299              		.size	ISR_Mode_1, .-ISR_Mode_1
+ 300              		.section	.text.ISR_Mode_2,"ax",%progbits
+ 301              		.align	2
+ 302              		.global	ISR_Mode_2
+ 303              		.code	16
+ 304              		.thumb_func
+ 305              		.type	ISR_Mode_2, %function
+ 306              	ISR_Mode_2:
+ 307              	.LFB36:
+ 119:main.c        **** CY_ISR(ISR_Mode_2)
+ 120:main.c        **** {
+ 308              		.loc 1 120 0
+ 309              		.cfi_startproc
+ 310              		@ args = 0, pretend = 0, frame = 0
+ 311              		@ frame_needed = 0, uses_anonymous_args = 0
+ 312 0000 10B5     		push	{r4, lr}
+ 313              		.cfi_def_cfa_offset 8
+ 314              		.cfi_offset 4, -8
+ 315              		.cfi_offset 14, -4
+ 121:main.c        ****     Mode = 2;
+ 316              		.loc 1 121 0
+ 317 0002 0222     		movs	r2, #2
+ 318 0004 044B     		ldr	r3, .L17
+ 319 0006 1A60     		str	r2, [r3]
+ 122:main.c        ****     Mode_1_LED_Write(0);
+ 320              		.loc 1 122 0
+ 321 0008 0020     		movs	r0, #0
+ 322 000a FFF7FEFF 		bl	Mode_1_LED_Write
+ 323              	.LVL19:
+ 123:main.c        ****     Mode_2_LED_Write(1);
+ 324              		.loc 1 123 0
+ 325 000e 0120     		movs	r0, #1
+ 326 0010 FFF7FEFF 		bl	Mode_2_LED_Write
+ 327              	.LVL20:
+ 124:main.c        **** }
+ 328              		.loc 1 124 0
+ 329              		@ sp needed
+ 330 0014 10BD     		pop	{r4, pc}
+ 331              	.L18:
+ 332 0016 C046     		.align	2
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 9
+
+
+ 333              	.L17:
+ 334 0018 00000000 		.word	.LANCHOR1
+ 335              		.cfi_endproc
+ 336              	.LFE36:
+ 337              		.size	ISR_Mode_2, .-ISR_Mode_2
+ 338              		.section	.text.main,"ax",%progbits
+ 339              		.align	2
+ 340              		.global	main
+ 341              		.code	16
+ 342              		.thumb_func
+ 343              		.type	main, %function
+ 344              	main:
+ 345              	.LFB37:
+ 125:main.c        **** /**************************************************  
+ 126:main.c        **** function name: main 
+ 127:main.c        **** **************************************************/ 
+ 128:main.c        **** int main() 
+ 129:main.c        **** {    	 
+ 346              		.loc 1 129 0
+ 347              		.cfi_startproc
+ 348              		@ Volatile: function does not return.
+ 349              		@ args = 0, pretend = 0, frame = 0
+ 350              		@ frame_needed = 0, uses_anonymous_args = 0
+ 351 0000 10B5     		push	{r4, lr}
+ 352              		.cfi_def_cfa_offset 8
+ 353              		.cfi_offset 4, -8
+ 354              		.cfi_offset 14, -4
+ 130:main.c        ****     CyGlobalIntEnable;  /* Uncomment this line to enable global interrupts. */ 
+ 355              		.loc 1 130 0
+ 356              		.syntax divided
+ 357              	@ 130 "main.c" 1
+ 358 0002 62B6     		CPSIE   i
+ 359              	@ 0 "" 2
+ 131:main.c        ****     LCD_Char_1_Start();
+ 360              		.loc 1 131 0
+ 361              		.thumb
+ 362              		.syntax unified
+ 363 0004 FFF7FEFF 		bl	LCD_Char_1_Start
+ 364              	.LVL21:
+ 132:main.c        ****     LCD_Char_1_ClearDisplay();
+ 365              		.loc 1 132 0
+ 366 0008 0120     		movs	r0, #1
+ 367 000a FFF7FEFF 		bl	LCD_Char_1_WriteControl
+ 368              	.LVL22:
+ 133:main.c        ****  	IDAC_1_Start();  
+ 369              		.loc 1 133 0
+ 370 000e FFF7FEFF 		bl	IDAC_1_Start
+ 371              	.LVL23:
+ 134:main.c        ****     
+ 135:main.c        ****     isr_NextSample_StartEx(ISR_GenerateSample);  	
+ 372              		.loc 1 135 0
+ 373 0012 2048     		ldr	r0, .L23
+ 374 0014 FFF7FEFF 		bl	isr_NextSample_StartEx
+ 375              	.LVL24:
+ 136:main.c        ****     isr_StopSamples_StartEx(ISR_StopGenerate); 
+ 376              		.loc 1 136 0
+ 377 0018 1F48     		ldr	r0, .L23+4
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 10
+
+
+ 378 001a FFF7FEFF 		bl	isr_StopSamples_StartEx
+ 379              	.LVL25:
+ 137:main.c        ****  	isr_Start_StartEx(ISR_SignalStart); 	 
+ 380              		.loc 1 137 0
+ 381 001e 1F4C     		ldr	r4, .L23+8
+ 382 0020 2000     		movs	r0, r4
+ 383 0022 FFF7FEFF 		bl	isr_Start_StartEx
+ 384              	.LVL26:
+ 138:main.c        ****     isr_Start_1_StartEx(ISR_SignalStart);
+ 385              		.loc 1 138 0
+ 386 0026 2000     		movs	r0, r4
+ 387 0028 FFF7FEFF 		bl	isr_Start_1_StartEx
+ 388              	.LVL27:
+ 139:main.c        ****     isr_Mode_1_StartEx(ISR_Mode_1);
+ 389              		.loc 1 139 0
+ 390 002c 1C48     		ldr	r0, .L23+12
+ 391 002e FFF7FEFF 		bl	isr_Mode_1_StartEx
+ 392              	.LVL28:
+ 140:main.c        ****     isr_Mode_2_StartEx(ISR_Mode_2);
+ 393              		.loc 1 140 0
+ 394 0032 1C48     		ldr	r0, .L23+16
+ 395 0034 FFF7FEFF 		bl	isr_Mode_2_StartEx
+ 396              	.LVL29:
+ 397              	.L20:
+ 141:main.c        ****  	 	     for(;;) 
+ 142:main.c        ****     {   
+ 143:main.c        ****        
+ 144:main.c        ****         if (Mode == 1) 
+ 398              		.loc 1 144 0
+ 399 0038 1B4B     		ldr	r3, .L23+20
+ 400 003a 1B68     		ldr	r3, [r3]
+ 401 003c 012B     		cmp	r3, #1
+ 402 003e 14D1     		bne	.L21
+ 145:main.c        ****         {
+ 146:main.c        ****             Mode_1_LED_Write(1);
+ 403              		.loc 1 146 0
+ 404 0040 0120     		movs	r0, #1
+ 405 0042 FFF7FEFF 		bl	Mode_1_LED_Write
+ 406              	.LVL30:
+ 147:main.c        ****             Mode_2_LED_Write(0);
+ 407              		.loc 1 147 0
+ 408 0046 0020     		movs	r0, #0
+ 409 0048 FFF7FEFF 		bl	Mode_2_LED_Write
+ 410              	.LVL31:
+ 148:main.c        ****             LCD_Char_1_Position(0,0);
+ 411              		.loc 1 148 0
+ 412 004c 0021     		movs	r1, #0
+ 413 004e 0020     		movs	r0, #0
+ 414 0050 FFF7FEFF 		bl	LCD_Char_1_Position
+ 415              	.LVL32:
+ 149:main.c        ****             LCD_Char_1_PrintString("ExpFadingProcess");
+ 416              		.loc 1 149 0
+ 417 0054 1548     		ldr	r0, .L23+24
+ 418 0056 FFF7FEFF 		bl	LCD_Char_1_PrintString
+ 419              	.LVL33:
+ 150:main.c        ****             LCD_Char_1_Position(1,0);
+ 420              		.loc 1 150 0
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 11
+
+
+ 421 005a 0021     		movs	r1, #0
+ 422 005c 0120     		movs	r0, #1
+ 423 005e FFF7FEFF 		bl	LCD_Char_1_Position
+ 424              	.LVL34:
+ 151:main.c        ****             LCD_Char_1_PrintString("Mod 1");
+ 425              		.loc 1 151 0
+ 426 0062 1348     		ldr	r0, .L23+28
+ 427 0064 FFF7FEFF 		bl	LCD_Char_1_PrintString
+ 428              	.LVL35:
+ 429 0068 E6E7     		b	.L20
+ 430              	.L21:
+ 152:main.c        ****         }
+ 153:main.c        ****         
+ 154:main.c        ****         else 
+ 155:main.c        ****         {
+ 156:main.c        ****             Mode_1_LED_Write(0);
+ 431              		.loc 1 156 0
+ 432 006a 0020     		movs	r0, #0
+ 433 006c FFF7FEFF 		bl	Mode_1_LED_Write
+ 434              	.LVL36:
+ 157:main.c        ****             Mode_2_LED_Write(1);
+ 435              		.loc 1 157 0
+ 436 0070 0120     		movs	r0, #1
+ 437 0072 FFF7FEFF 		bl	Mode_2_LED_Write
+ 438              	.LVL37:
+ 158:main.c        ****             LCD_Char_1_Position(0,0);
+ 439              		.loc 1 158 0
+ 440 0076 0021     		movs	r1, #0
+ 441 0078 0020     		movs	r0, #0
+ 442 007a FFF7FEFF 		bl	LCD_Char_1_Position
+ 443              	.LVL38:
+ 159:main.c        ****             LCD_Char_1_PrintString("ExpFadingProcess");
+ 444              		.loc 1 159 0
+ 445 007e 0B48     		ldr	r0, .L23+24
+ 446 0080 FFF7FEFF 		bl	LCD_Char_1_PrintString
+ 447              	.LVL39:
+ 160:main.c        ****             LCD_Char_1_Position(1,0);
+ 448              		.loc 1 160 0
+ 449 0084 0021     		movs	r1, #0
+ 450 0086 0120     		movs	r0, #1
+ 451 0088 FFF7FEFF 		bl	LCD_Char_1_Position
+ 452              	.LVL40:
+ 161:main.c        ****             LCD_Char_1_PrintString("Mod 2");
+ 453              		.loc 1 161 0
+ 454 008c 0948     		ldr	r0, .L23+32
+ 455 008e FFF7FEFF 		bl	LCD_Char_1_PrintString
+ 456              	.LVL41:
+ 457 0092 D1E7     		b	.L20
+ 458              	.L24:
+ 459              		.align	2
+ 460              	.L23:
+ 461 0094 00000000 		.word	ISR_GenerateSample
+ 462 0098 00000000 		.word	ISR_StopGenerate
+ 463 009c 00000000 		.word	ISR_SignalStart
+ 464 00a0 00000000 		.word	ISR_Mode_1
+ 465 00a4 00000000 		.word	ISR_Mode_2
+ 466 00a8 00000000 		.word	.LANCHOR1
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 12
+
+
+ 467 00ac 08000000 		.word	.LC21
+ 468 00b0 1C000000 		.word	.LC23
+ 469 00b4 24000000 		.word	.LC25
+ 470              		.cfi_endproc
+ 471              	.LFE37:
+ 472              		.size	main, .-main
+ 473              		.global	SamplesExpFadingMod2
+ 474              		.global	SamplesExpFadingMod1
+ 475              		.global	Samples
+ 476              		.global	NumOfSamplesInPeriodExpFadingMod2
+ 477              		.global	NumOfSamplesInPeriodExpFadingMod1
+ 478              		.global	NumOfSamplesInPeriod
+ 479              		.comm	ProcessedSample,4,4
+ 480              		.global	MainIdxExpFadingMod2
+ 481              		.global	MainIdxExpFadingMod1
+ 482              		.global	MainIdx
+ 483              		.global	Mode
+ 484              		.comm	InProgres,4,4
+ 485              		.section	.rodata
+ 486              		.align	2
+ 487              		.set	.LANCHOR2,. + 0
+ 488              		.set	.LANCHOR3,. + 384
+ 489              		.set	.LANCHOR4,. + 1536
+ 490              		.type	SamplesExpFadingMod1, %object
+ 491              		.size	SamplesExpFadingMod1, 400
+ 492              	SamplesExpFadingMod1:
+ 493 0000 7F       		.byte	127
+ 494 0001 A6       		.byte	-90
+ 495 0002 C7       		.byte	-57
+ 496 0003 E1       		.byte	-31
+ 497 0004 F1       		.byte	-15
+ 498 0005 F5       		.byte	-11
+ 499 0006 ED       		.byte	-19
+ 500 0007 DC       		.byte	-36
+ 501 0008 C1       		.byte	-63
+ 502 0009 A1       		.byte	-95
+ 503 000a 7F       		.byte	127
+ 504 000b 5E       		.byte	94
+ 505 000c 41       		.byte	65
+ 506 000d 2A       		.byte	42
+ 507 000e 1D       		.byte	29
+ 508 000f 1A       		.byte	26
+ 509 0010 20       		.byte	32
+ 510 0011 2F       		.byte	47
+ 511 0012 46       		.byte	70
+ 512 0013 61       		.byte	97
+ 513 0014 7F       		.byte	127
+ 514 0015 9C       		.byte	-100
+ 515 0016 B5       		.byte	-75
+ 516 0017 C8       		.byte	-56
+ 517 0018 D3       		.byte	-45
+ 518 0019 D6       		.byte	-42
+ 519 001a D1       		.byte	-47
+ 520 001b C4       		.byte	-60
+ 521 001c B0       		.byte	-80
+ 522 001d 98       		.byte	-104
+ 523 001e 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 13
+
+
+ 524 001f 66       		.byte	102
+ 525 0020 51       		.byte	81
+ 526 0021 40       		.byte	64
+ 527 0022 36       		.byte	54
+ 528 0023 34       		.byte	52
+ 529 0024 39       		.byte	57
+ 530 0025 44       		.byte	68
+ 531 0026 55       		.byte	85
+ 532 0027 69       		.byte	105
+ 533 0028 7F       		.byte	127
+ 534 0029 94       		.byte	-108
+ 535 002a A7       		.byte	-89
+ 536 002b B5       		.byte	-75
+ 537 002c BD       		.byte	-67
+ 538 002d C0       		.byte	-64
+ 539 002e BC       		.byte	-68
+ 540 002f B2       		.byte	-78
+ 541 0030 A3       		.byte	-93
+ 542 0031 92       		.byte	-110
+ 543 0032 7F       		.byte	127
+ 544 0033 6D       		.byte	109
+ 545 0034 5D       		.byte	93
+ 546 0035 51       		.byte	81
+ 547 0036 49       		.byte	73
+ 548 0037 47       		.byte	71
+ 549 0038 4B       		.byte	75
+ 550 0039 53       		.byte	83
+ 551 003a 60       		.byte	96
+ 552 003b 6F       		.byte	111
+ 553 003c 7F       		.byte	127
+ 554 003d 8F       		.byte	-113
+ 555 003e 9C       		.byte	-100
+ 556 003f A7       		.byte	-89
+ 557 0040 AD       		.byte	-83
+ 558 0041 AF       		.byte	-81
+ 559 0042 AC       		.byte	-84
+ 560 0043 A5       		.byte	-91
+ 561 0044 9A       		.byte	-102
+ 562 0045 8D       		.byte	-115
+ 563 0046 7F       		.byte	127
+ 564 0047 71       		.byte	113
+ 565 0048 66       		.byte	102
+ 566 0049 5D       		.byte	93
+ 567 004a 57       		.byte	87
+ 568 004b 56       		.byte	86
+ 569 004c 58       		.byte	88
+ 570 004d 5F       		.byte	95
+ 571 004e 68       		.byte	104
+ 572 004f 73       		.byte	115
+ 573 0050 7F       		.byte	127
+ 574 0051 8B       		.byte	-117
+ 575 0052 95       		.byte	-107
+ 576 0053 9D       		.byte	-99
+ 577 0054 A1       		.byte	-95
+ 578 0055 A2       		.byte	-94
+ 579 0056 A0       		.byte	-96
+ 580 0057 9B       		.byte	-101
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 14
+
+
+ 581 0058 93       		.byte	-109
+ 582 0059 89       		.byte	-119
+ 583 005a 7F       		.byte	127
+ 584 005b 75       		.byte	117
+ 585 005c 6C       		.byte	108
+ 586 005d 66       		.byte	102
+ 587 005e 62       		.byte	98
+ 588 005f 60       		.byte	96
+ 589 0060 62       		.byte	98
+ 590 0061 67       		.byte	103
+ 591 0062 6E       		.byte	110
+ 592 0063 76       		.byte	118
+ 593 0064 7F       		.byte	127
+ 594 0065 88       		.byte	-120
+ 595 0066 8F       		.byte	-113
+ 596 0067 95       		.byte	-107
+ 597 0068 98       		.byte	-104
+ 598 0069 99       		.byte	-103
+ 599 006a 98       		.byte	-104
+ 600 006b 94       		.byte	-108
+ 601 006c 8E       		.byte	-114
+ 602 006d 87       		.byte	-121
+ 603 006e 7F       		.byte	127
+ 604 006f 78       		.byte	120
+ 605 0070 71       		.byte	113
+ 606 0071 6C       		.byte	108
+ 607 0072 69       		.byte	105
+ 608 0073 68       		.byte	104
+ 609 0074 6A       		.byte	106
+ 610 0075 6D       		.byte	109
+ 611 0076 72       		.byte	114
+ 612 0077 78       		.byte	120
+ 613 0078 7F       		.byte	127
+ 614 0079 85       		.byte	-123
+ 615 007a 8B       		.byte	-117
+ 616 007b 8F       		.byte	-113
+ 617 007c 92       		.byte	-110
+ 618 007d 92       		.byte	-110
+ 619 007e 91       		.byte	-111
+ 620 007f 8E       		.byte	-114
+ 621 0080 8A       		.byte	-118
+ 622 0081 85       		.byte	-123
+ 623 0082 7F       		.byte	127
+ 624 0083 79       		.byte	121
+ 625 0084 75       		.byte	117
+ 626 0085 71       		.byte	113
+ 627 0086 6F       		.byte	111
+ 628 0087 6E       		.byte	110
+ 629 0088 6F       		.byte	111
+ 630 0089 72       		.byte	114
+ 631 008a 76       		.byte	118
+ 632 008b 7A       		.byte	122
+ 633 008c 7F       		.byte	127
+ 634 008d 84       		.byte	-124
+ 635 008e 88       		.byte	-120
+ 636 008f 8B       		.byte	-117
+ 637 0090 8D       		.byte	-115
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 15
+
+
+ 638 0091 8D       		.byte	-115
+ 639 0092 8D       		.byte	-115
+ 640 0093 8A       		.byte	-118
+ 641 0094 87       		.byte	-121
+ 642 0095 83       		.byte	-125
+ 643 0096 7F       		.byte	127
+ 644 0097 7B       		.byte	123
+ 645 0098 77       		.byte	119
+ 646 0099 75       		.byte	117
+ 647 009a 73       		.byte	115
+ 648 009b 73       		.byte	115
+ 649 009c 73       		.byte	115
+ 650 009d 75       		.byte	117
+ 651 009e 78       		.byte	120
+ 652 009f 7B       		.byte	123
+ 653 00a0 7F       		.byte	127
+ 654 00a1 83       		.byte	-125
+ 655 00a2 86       		.byte	-122
+ 656 00a3 88       		.byte	-120
+ 657 00a4 89       		.byte	-119
+ 658 00a5 8A       		.byte	-118
+ 659 00a6 89       		.byte	-119
+ 660 00a7 87       		.byte	-121
+ 661 00a8 85       		.byte	-123
+ 662 00a9 82       		.byte	-126
+ 663 00aa 7F       		.byte	127
+ 664 00ab 7C       		.byte	124
+ 665 00ac 79       		.byte	121
+ 666 00ad 77       		.byte	119
+ 667 00ae 76       		.byte	118
+ 668 00af 76       		.byte	118
+ 669 00b0 76       		.byte	118
+ 670 00b1 78       		.byte	120
+ 671 00b2 7A       		.byte	122
+ 672 00b3 7C       		.byte	124
+ 673 00b4 7F       		.byte	127
+ 674 00b5 82       		.byte	-126
+ 675 00b6 84       		.byte	-124
+ 676 00b7 86       		.byte	-122
+ 677 00b8 87       		.byte	-121
+ 678 00b9 87       		.byte	-121
+ 679 00ba 86       		.byte	-122
+ 680 00bb 85       		.byte	-123
+ 681 00bc 83       		.byte	-125
+ 682 00bd 81       		.byte	-127
+ 683 00be 7F       		.byte	127
+ 684 00bf 7D       		.byte	125
+ 685 00c0 7B       		.byte	123
+ 686 00c1 79       		.byte	121
+ 687 00c2 78       		.byte	120
+ 688 00c3 78       		.byte	120
+ 689 00c4 79       		.byte	121
+ 690 00c5 7A       		.byte	122
+ 691 00c6 7B       		.byte	123
+ 692 00c7 7D       		.byte	125
+ 693 00c8 7F       		.byte	127
+ 694 00c9 81       		.byte	-127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 16
+
+
+ 695 00ca 83       		.byte	-125
+ 696 00cb 84       		.byte	-124
+ 697 00cc 85       		.byte	-123
+ 698 00cd 85       		.byte	-123
+ 699 00ce 84       		.byte	-124
+ 700 00cf 84       		.byte	-124
+ 701 00d0 82       		.byte	-126
+ 702 00d1 81       		.byte	-127
+ 703 00d2 7F       		.byte	127
+ 704 00d3 7D       		.byte	125
+ 705 00d4 7C       		.byte	124
+ 706 00d5 7B       		.byte	123
+ 707 00d6 7A       		.byte	122
+ 708 00d7 7A       		.byte	122
+ 709 00d8 7A       		.byte	122
+ 710 00d9 7B       		.byte	123
+ 711 00da 7C       		.byte	124
+ 712 00db 7E       		.byte	126
+ 713 00dc 7F       		.byte	127
+ 714 00dd 80       		.byte	-128
+ 715 00de 82       		.byte	-126
+ 716 00df 83       		.byte	-125
+ 717 00e0 83       		.byte	-125
+ 718 00e1 83       		.byte	-125
+ 719 00e2 83       		.byte	-125
+ 720 00e3 82       		.byte	-126
+ 721 00e4 81       		.byte	-127
+ 722 00e5 80       		.byte	-128
+ 723 00e6 7F       		.byte	127
+ 724 00e7 7E       		.byte	126
+ 725 00e8 7D       		.byte	125
+ 726 00e9 7C       		.byte	124
+ 727 00ea 7B       		.byte	123
+ 728 00eb 7B       		.byte	123
+ 729 00ec 7B       		.byte	123
+ 730 00ed 7C       		.byte	124
+ 731 00ee 7D       		.byte	125
+ 732 00ef 7E       		.byte	126
+ 733 00f0 7F       		.byte	127
+ 734 00f1 80       		.byte	-128
+ 735 00f2 81       		.byte	-127
+ 736 00f3 82       		.byte	-126
+ 737 00f4 82       		.byte	-126
+ 738 00f5 82       		.byte	-126
+ 739 00f6 82       		.byte	-126
+ 740 00f7 82       		.byte	-126
+ 741 00f8 81       		.byte	-127
+ 742 00f9 80       		.byte	-128
+ 743 00fa 7F       		.byte	127
+ 744 00fb 7E       		.byte	126
+ 745 00fc 7D       		.byte	125
+ 746 00fd 7D       		.byte	125
+ 747 00fe 7C       		.byte	124
+ 748 00ff 7C       		.byte	124
+ 749 0100 7C       		.byte	124
+ 750 0101 7D       		.byte	125
+ 751 0102 7D       		.byte	125
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 17
+
+
+ 752 0103 7E       		.byte	126
+ 753 0104 7F       		.byte	127
+ 754 0105 80       		.byte	-128
+ 755 0106 80       		.byte	-128
+ 756 0107 81       		.byte	-127
+ 757 0108 81       		.byte	-127
+ 758 0109 81       		.byte	-127
+ 759 010a 81       		.byte	-127
+ 760 010b 81       		.byte	-127
+ 761 010c 80       		.byte	-128
+ 762 010d 80       		.byte	-128
+ 763 010e 7F       		.byte	127
+ 764 010f 7E       		.byte	126
+ 765 0110 7E       		.byte	126
+ 766 0111 7D       		.byte	125
+ 767 0112 7D       		.byte	125
+ 768 0113 7D       		.byte	125
+ 769 0114 7D       		.byte	125
+ 770 0115 7D       		.byte	125
+ 771 0116 7E       		.byte	126
+ 772 0117 7E       		.byte	126
+ 773 0118 7F       		.byte	127
+ 774 0119 80       		.byte	-128
+ 775 011a 80       		.byte	-128
+ 776 011b 80       		.byte	-128
+ 777 011c 81       		.byte	-127
+ 778 011d 81       		.byte	-127
+ 779 011e 81       		.byte	-127
+ 780 011f 80       		.byte	-128
+ 781 0120 80       		.byte	-128
+ 782 0121 80       		.byte	-128
+ 783 0122 7F       		.byte	127
+ 784 0123 7F       		.byte	127
+ 785 0124 7E       		.byte	126
+ 786 0125 7E       		.byte	126
+ 787 0126 7E       		.byte	126
+ 788 0127 7D       		.byte	125
+ 789 0128 7E       		.byte	126
+ 790 0129 7E       		.byte	126
+ 791 012a 7E       		.byte	126
+ 792 012b 7F       		.byte	127
+ 793 012c 7F       		.byte	127
+ 794 012d 7F       		.byte	127
+ 795 012e 80       		.byte	-128
+ 796 012f 80       		.byte	-128
+ 797 0130 80       		.byte	-128
+ 798 0131 80       		.byte	-128
+ 799 0132 80       		.byte	-128
+ 800 0133 80       		.byte	-128
+ 801 0134 80       		.byte	-128
+ 802 0135 7F       		.byte	127
+ 803 0136 7F       		.byte	127
+ 804 0137 7F       		.byte	127
+ 805 0138 7E       		.byte	126
+ 806 0139 7E       		.byte	126
+ 807 013a 7E       		.byte	126
+ 808 013b 7E       		.byte	126
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 18
+
+
+ 809 013c 7E       		.byte	126
+ 810 013d 7E       		.byte	126
+ 811 013e 7E       		.byte	126
+ 812 013f 7F       		.byte	127
+ 813 0140 7F       		.byte	127
+ 814 0141 7F       		.byte	127
+ 815 0142 80       		.byte	-128
+ 816 0143 80       		.byte	-128
+ 817 0144 80       		.byte	-128
+ 818 0145 80       		.byte	-128
+ 819 0146 80       		.byte	-128
+ 820 0147 80       		.byte	-128
+ 821 0148 80       		.byte	-128
+ 822 0149 7F       		.byte	127
+ 823 014a 7F       		.byte	127
+ 824 014b 7F       		.byte	127
+ 825 014c 7E       		.byte	126
+ 826 014d 7E       		.byte	126
+ 827 014e 7E       		.byte	126
+ 828 014f 7E       		.byte	126
+ 829 0150 7E       		.byte	126
+ 830 0151 7E       		.byte	126
+ 831 0152 7F       		.byte	127
+ 832 0153 7F       		.byte	127
+ 833 0154 7F       		.byte	127
+ 834 0155 7F       		.byte	127
+ 835 0156 7F       		.byte	127
+ 836 0157 80       		.byte	-128
+ 837 0158 80       		.byte	-128
+ 838 0159 80       		.byte	-128
+ 839 015a 80       		.byte	-128
+ 840 015b 80       		.byte	-128
+ 841 015c 7F       		.byte	127
+ 842 015d 7F       		.byte	127
+ 843 015e 7F       		.byte	127
+ 844 015f 7F       		.byte	127
+ 845 0160 7F       		.byte	127
+ 846 0161 7E       		.byte	126
+ 847 0162 7E       		.byte	126
+ 848 0163 7E       		.byte	126
+ 849 0164 7E       		.byte	126
+ 850 0165 7F       		.byte	127
+ 851 0166 7F       		.byte	127
+ 852 0167 7F       		.byte	127
+ 853 0168 7F       		.byte	127
+ 854 0169 7F       		.byte	127
+ 855 016a 7F       		.byte	127
+ 856 016b 7F       		.byte	127
+ 857 016c 80       		.byte	-128
+ 858 016d 80       		.byte	-128
+ 859 016e 7F       		.byte	127
+ 860 016f 7F       		.byte	127
+ 861 0170 7F       		.byte	127
+ 862 0171 7F       		.byte	127
+ 863 0172 7F       		.byte	127
+ 864 0173 7F       		.byte	127
+ 865 0174 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 19
+
+
+ 866 0175 7F       		.byte	127
+ 867 0176 7F       		.byte	127
+ 868 0177 7F       		.byte	127
+ 869 0178 7F       		.byte	127
+ 870 0179 7F       		.byte	127
+ 871 017a 7F       		.byte	127
+ 872 017b 7F       		.byte	127
+ 873 017c 7F       		.byte	127
+ 874 017d 7F       		.byte	127
+ 875 017e 7F       		.byte	127
+ 876 017f 7F       		.byte	127
+ 877 0180 7F       		.byte	127
+ 878 0181 7F       		.byte	127
+ 879 0182 7F       		.byte	127
+ 880 0183 7F       		.byte	127
+ 881 0184 7F       		.byte	127
+ 882 0185 7F       		.byte	127
+ 883 0186 7F       		.byte	127
+ 884 0187 7F       		.byte	127
+ 885 0188 7F       		.byte	127
+ 886 0189 7F       		.byte	127
+ 887 018a 7F       		.byte	127
+ 888 018b 7F       		.byte	127
+ 889 018c 7F       		.byte	127
+ 890 018d 7F       		.byte	127
+ 891 018e 7F       		.byte	127
+ 892 018f 7F       		.byte	127
+ 893              		.type	SamplesExpFadingMod2, %object
+ 894              		.size	SamplesExpFadingMod2, 1200
+ 895              	SamplesExpFadingMod2:
+ 896 0190 7F       		.byte	127
+ 897 0191 A6       		.byte	-90
+ 898 0192 C9       		.byte	-55
+ 899 0193 E4       		.byte	-28
+ 900 0194 F5       		.byte	-11
+ 901 0195 FB       		.byte	-5
+ 902 0196 F4       		.byte	-12
+ 903 0197 E2       		.byte	-30
+ 904 0198 C7       		.byte	-57
+ 905 0199 A5       		.byte	-91
+ 906 019a 7F       		.byte	127
+ 907 019b 5A       		.byte	90
+ 908 019c 39       		.byte	57
+ 909 019d 1F       		.byte	31
+ 910 019e 0E       		.byte	14
+ 911 019f 09       		.byte	9
+ 912 01a0 10       		.byte	16
+ 913 01a1 21       		.byte	33
+ 914 01a2 3B       		.byte	59
+ 915 01a3 5B       		.byte	91
+ 916 01a4 7F       		.byte	127
+ 917 01a5 A2       		.byte	-94
+ 918 01a6 C2       		.byte	-62
+ 919 01a7 DB       		.byte	-37
+ 920 01a8 EA       		.byte	-22
+ 921 01a9 EF       		.byte	-17
+ 922 01aa E9       		.byte	-23
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 20
+
+
+ 923 01ab D9       		.byte	-39
+ 924 01ac C0       		.byte	-64
+ 925 01ad A1       		.byte	-95
+ 926 01ae 7F       		.byte	127
+ 927 01af 5D       		.byte	93
+ 928 01b0 3F       		.byte	63
+ 929 01b1 28       		.byte	40
+ 930 01b2 19       		.byte	25
+ 931 01b3 14       		.byte	20
+ 932 01b4 1A       		.byte	26
+ 933 01b5 2A       		.byte	42
+ 934 01b6 41       		.byte	65
+ 935 01b7 5F       		.byte	95
+ 936 01b8 7F       		.byte	127
+ 937 01b9 9F       		.byte	-97
+ 938 01ba BC       		.byte	-68
+ 939 01bb D2       		.byte	-46
+ 940 01bc E0       		.byte	-32
+ 941 01bd E4       		.byte	-28
+ 942 01be DF       		.byte	-33
+ 943 01bf D0       		.byte	-48
+ 944 01c0 BA       		.byte	-70
+ 945 01c1 9E       		.byte	-98
+ 946 01c2 7F       		.byte	127
+ 947 01c3 61       		.byte	97
+ 948 01c4 45       		.byte	69
+ 949 01c5 30       		.byte	48
+ 950 01c6 23       		.byte	35
+ 951 01c7 1F       		.byte	31
+ 952 01c8 24       		.byte	36
+ 953 01c9 32       		.byte	50
+ 954 01ca 47       		.byte	71
+ 955 01cb 62       		.byte	98
+ 956 01cc 7F       		.byte	127
+ 957 01cd 9C       		.byte	-100
+ 958 01ce B6       		.byte	-74
+ 959 01cf CA       		.byte	-54
+ 960 01d0 D7       		.byte	-41
+ 961 01d1 DB       		.byte	-37
+ 962 01d2 D6       		.byte	-42
+ 963 01d3 C8       		.byte	-56
+ 964 01d4 B4       		.byte	-76
+ 965 01d5 9B       		.byte	-101
+ 966 01d6 7F       		.byte	127
+ 967 01d7 63       		.byte	99
+ 968 01d8 4B       		.byte	75
+ 969 01d9 38       		.byte	56
+ 970 01da 2C       		.byte	44
+ 971 01db 28       		.byte	40
+ 972 01dc 2C       		.byte	44
+ 973 01dd 39       		.byte	57
+ 974 01de 4C       		.byte	76
+ 975 01df 65       		.byte	101
+ 976 01e0 7F       		.byte	127
+ 977 01e1 99       		.byte	-103
+ 978 01e2 B1       		.byte	-79
+ 979 01e3 C3       		.byte	-61
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 21
+
+
+ 980 01e4 CE       		.byte	-50
+ 981 01e5 D2       		.byte	-46
+ 982 01e6 CE       		.byte	-50
+ 983 01e7 C2       		.byte	-62
+ 984 01e8 AF       		.byte	-81
+ 985 01e9 98       		.byte	-104
+ 986 01ea 7F       		.byte	127
+ 987 01eb 66       		.byte	102
+ 988 01ec 50       		.byte	80
+ 989 01ed 3E       		.byte	62
+ 990 01ee 34       		.byte	52
+ 991 01ef 30       		.byte	48
+ 992 01f0 34       		.byte	52
+ 993 01f1 40       		.byte	64
+ 994 01f2 51       		.byte	81
+ 995 01f3 67       		.byte	103
+ 996 01f4 7F       		.byte	127
+ 997 01f5 97       		.byte	-105
+ 998 01f6 AC       		.byte	-84
+ 999 01f7 BC       		.byte	-68
+ 1000 01f8 C7       		.byte	-57
+ 1001 01f9 CA       		.byte	-54
+ 1002 01fa C6       		.byte	-58
+ 1003 01fb BB       		.byte	-69
+ 1004 01fc AB       		.byte	-85
+ 1005 01fd 96       		.byte	-106
+ 1006 01fe 7F       		.byte	127
+ 1007 01ff 68       		.byte	104
+ 1008 0200 54       		.byte	84
+ 1009 0201 45       		.byte	69
+ 1010 0202 3B       		.byte	59
+ 1011 0203 38       		.byte	56
+ 1012 0204 3B       		.byte	59
+ 1013 0205 46       		.byte	70
+ 1014 0206 56       		.byte	86
+ 1015 0207 69       		.byte	105
+ 1016 0208 7F       		.byte	127
+ 1017 0209 94       		.byte	-108
+ 1018 020a A8       		.byte	-88
+ 1019 020b B7       		.byte	-73
+ 1020 020c C0       		.byte	-64
+ 1021 020d C3       		.byte	-61
+ 1022 020e BF       		.byte	-65
+ 1023 020f B5       		.byte	-75
+ 1024 0210 A6       		.byte	-90
+ 1025 0211 94       		.byte	-108
+ 1026 0212 7F       		.byte	127
+ 1027 0213 6B       		.byte	107
+ 1028 0214 58       		.byte	88
+ 1029 0215 4A       		.byte	74
+ 1030 0216 41       		.byte	65
+ 1031 0217 3E       		.byte	62
+ 1032 0218 42       		.byte	66
+ 1033 0219 4B       		.byte	75
+ 1034 021a 5A       		.byte	90
+ 1035 021b 6B       		.byte	107
+ 1036 021c 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 22
+
+
+ 1037 021d 92       		.byte	-110
+ 1038 021e A4       		.byte	-92
+ 1039 021f B1       		.byte	-79
+ 1040 0220 BA       		.byte	-70
+ 1041 0221 BD       		.byte	-67
+ 1042 0222 B9       		.byte	-71
+ 1043 0223 B0       		.byte	-80
+ 1044 0224 A3       		.byte	-93
+ 1045 0225 92       		.byte	-110
+ 1046 0226 7F       		.byte	127
+ 1047 0227 6D       		.byte	109
+ 1048 0228 5C       		.byte	92
+ 1049 0229 4F       		.byte	79
+ 1050 022a 47       		.byte	71
+ 1051 022b 44       		.byte	68
+ 1052 022c 48       		.byte	72
+ 1053 022d 50       		.byte	80
+ 1054 022e 5D       		.byte	93
+ 1055 022f 6D       		.byte	109
+ 1056 0230 7F       		.byte	127
+ 1057 0231 91       		.byte	-111
+ 1058 0232 A0       		.byte	-96
+ 1059 0233 AC       		.byte	-84
+ 1060 0234 B4       		.byte	-76
+ 1061 0235 B7       		.byte	-73
+ 1062 0236 B4       		.byte	-76
+ 1063 0237 AC       		.byte	-84
+ 1064 0238 9F       		.byte	-97
+ 1065 0239 90       		.byte	-112
+ 1066 023a 7F       		.byte	127
+ 1067 023b 6E       		.byte	110
+ 1068 023c 5F       		.byte	95
+ 1069 023d 54       		.byte	84
+ 1070 023e 4C       		.byte	76
+ 1071 023f 4A       		.byte	74
+ 1072 0240 4D       		.byte	77
+ 1073 0241 55       		.byte	85
+ 1074 0242 60       		.byte	96
+ 1075 0243 6F       		.byte	111
+ 1076 0244 7F       		.byte	127
+ 1077 0245 8F       		.byte	-113
+ 1078 0246 9D       		.byte	-99
+ 1079 0247 A8       		.byte	-88
+ 1080 0248 AF       		.byte	-81
+ 1081 0249 B1       		.byte	-79
+ 1082 024a AF       		.byte	-81
+ 1083 024b A7       		.byte	-89
+ 1084 024c 9C       		.byte	-100
+ 1085 024d 8E       		.byte	-114
+ 1086 024e 7F       		.byte	127
+ 1087 024f 70       		.byte	112
+ 1088 0250 62       		.byte	98
+ 1089 0251 58       		.byte	88
+ 1090 0252 51       		.byte	81
+ 1091 0253 4F       		.byte	79
+ 1092 0254 52       		.byte	82
+ 1093 0255 59       		.byte	89
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 23
+
+
+ 1094 0256 63       		.byte	99
+ 1095 0257 70       		.byte	112
+ 1096 0258 7F       		.byte	127
+ 1097 0259 8D       		.byte	-115
+ 1098 025a 9A       		.byte	-102
+ 1099 025b A4       		.byte	-92
+ 1100 025c AB       		.byte	-85
+ 1101 025d AD       		.byte	-83
+ 1102 025e AA       		.byte	-86
+ 1103 025f A3       		.byte	-93
+ 1104 0260 99       		.byte	-103
+ 1105 0261 8D       		.byte	-115
+ 1106 0262 7F       		.byte	127
+ 1107 0263 71       		.byte	113
+ 1108 0264 65       		.byte	101
+ 1109 0265 5C       		.byte	92
+ 1110 0266 56       		.byte	86
+ 1111 0267 54       		.byte	84
+ 1112 0268 56       		.byte	86
+ 1113 0269 5C       		.byte	92
+ 1114 026a 66       		.byte	102
+ 1115 026b 72       		.byte	114
+ 1116 026c 7F       		.byte	127
+ 1117 026d 8C       		.byte	-116
+ 1118 026e 98       		.byte	-104
+ 1119 026f A1       		.byte	-95
+ 1120 0270 A6       		.byte	-90
+ 1121 0271 A8       		.byte	-88
+ 1122 0272 A6       		.byte	-90
+ 1123 0273 A0       		.byte	-96
+ 1124 0274 97       		.byte	-105
+ 1125 0275 8B       		.byte	-117
+ 1126 0276 7F       		.byte	127
+ 1127 0277 73       		.byte	115
+ 1128 0278 68       		.byte	104
+ 1129 0279 5F       		.byte	95
+ 1130 027a 5A       		.byte	90
+ 1131 027b 58       		.byte	88
+ 1132 027c 5A       		.byte	90
+ 1133 027d 60       		.byte	96
+ 1134 027e 68       		.byte	104
+ 1135 027f 73       		.byte	115
+ 1136 0280 7F       		.byte	127
+ 1137 0281 8B       		.byte	-117
+ 1138 0282 95       		.byte	-107
+ 1139 0283 9D       		.byte	-99
+ 1140 0284 A3       		.byte	-93
+ 1141 0285 A4       		.byte	-92
+ 1142 0286 A2       		.byte	-94
+ 1143 0287 9D       		.byte	-99
+ 1144 0288 95       		.byte	-107
+ 1145 0289 8A       		.byte	-118
+ 1146 028a 7F       		.byte	127
+ 1147 028b 74       		.byte	116
+ 1148 028c 6A       		.byte	106
+ 1149 028d 62       		.byte	98
+ 1150 028e 5D       		.byte	93
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 24
+
+
+ 1151 028f 5C       		.byte	92
+ 1152 0290 5D       		.byte	93
+ 1153 0291 63       		.byte	99
+ 1154 0292 6A       		.byte	106
+ 1155 0293 74       		.byte	116
+ 1156 0294 7F       		.byte	127
+ 1157 0295 8A       		.byte	-118
+ 1158 0296 93       		.byte	-109
+ 1159 0297 9B       		.byte	-101
+ 1160 0298 9F       		.byte	-97
+ 1161 0299 A1       		.byte	-95
+ 1162 029a 9F       		.byte	-97
+ 1163 029b 9A       		.byte	-102
+ 1164 029c 93       		.byte	-109
+ 1165 029d 89       		.byte	-119
+ 1166 029e 7F       		.byte	127
+ 1167 029f 75       		.byte	117
+ 1168 02a0 6C       		.byte	108
+ 1169 02a1 65       		.byte	101
+ 1170 02a2 60       		.byte	96
+ 1171 02a3 5F       		.byte	95
+ 1172 02a4 61       		.byte	97
+ 1173 02a5 65       		.byte	101
+ 1174 02a6 6C       		.byte	108
+ 1175 02a7 75       		.byte	117
+ 1176 02a8 7F       		.byte	127
+ 1177 02a9 89       		.byte	-119
+ 1178 02aa 91       		.byte	-111
+ 1179 02ab 98       		.byte	-104
+ 1180 02ac 9C       		.byte	-100
+ 1181 02ad 9E       		.byte	-98
+ 1182 02ae 9C       		.byte	-100
+ 1183 02af 97       		.byte	-105
+ 1184 02b0 91       		.byte	-111
+ 1185 02b1 88       		.byte	-120
+ 1186 02b2 7F       		.byte	127
+ 1187 02b3 76       		.byte	118
+ 1188 02b4 6E       		.byte	110
+ 1189 02b5 67       		.byte	103
+ 1190 02b6 63       		.byte	99
+ 1191 02b7 62       		.byte	98
+ 1192 02b8 64       		.byte	100
+ 1193 02b9 68       		.byte	104
+ 1194 02ba 6E       		.byte	110
+ 1195 02bb 76       		.byte	118
+ 1196 02bc 7F       		.byte	127
+ 1197 02bd 88       		.byte	-120
+ 1198 02be 8F       		.byte	-113
+ 1199 02bf 96       		.byte	-106
+ 1200 02c0 99       		.byte	-103
+ 1201 02c1 9B       		.byte	-101
+ 1202 02c2 99       		.byte	-103
+ 1203 02c3 95       		.byte	-107
+ 1204 02c4 8F       		.byte	-113
+ 1205 02c5 87       		.byte	-121
+ 1206 02c6 7F       		.byte	127
+ 1207 02c7 77       		.byte	119
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 25
+
+
+ 1208 02c8 6F       		.byte	111
+ 1209 02c9 6A       		.byte	106
+ 1210 02ca 66       		.byte	102
+ 1211 02cb 65       		.byte	101
+ 1212 02cc 66       		.byte	102
+ 1213 02cd 6A       		.byte	106
+ 1214 02ce 70       		.byte	112
+ 1215 02cf 77       		.byte	119
+ 1216 02d0 7F       		.byte	127
+ 1217 02d1 87       		.byte	-121
+ 1218 02d2 8E       		.byte	-114
+ 1219 02d3 93       		.byte	-109
+ 1220 02d4 97       		.byte	-105
+ 1221 02d5 98       		.byte	-104
+ 1222 02d6 97       		.byte	-105
+ 1223 02d7 93       		.byte	-109
+ 1224 02d8 8D       		.byte	-115
+ 1225 02d9 87       		.byte	-121
+ 1226 02da 7F       		.byte	127
+ 1227 02db 78       		.byte	120
+ 1228 02dc 71       		.byte	113
+ 1229 02dd 6C       		.byte	108
+ 1230 02de 68       		.byte	104
+ 1231 02df 67       		.byte	103
+ 1232 02e0 68       		.byte	104
+ 1233 02e1 6C       		.byte	108
+ 1234 02e2 71       		.byte	113
+ 1235 02e3 78       		.byte	120
+ 1236 02e4 7F       		.byte	127
+ 1237 02e5 86       		.byte	-122
+ 1238 02e6 8D       		.byte	-115
+ 1239 02e7 91       		.byte	-111
+ 1240 02e8 95       		.byte	-107
+ 1241 02e9 96       		.byte	-106
+ 1242 02ea 94       		.byte	-108
+ 1243 02eb 91       		.byte	-111
+ 1244 02ec 8C       		.byte	-116
+ 1245 02ed 86       		.byte	-122
+ 1246 02ee 7F       		.byte	127
+ 1247 02ef 78       		.byte	120
+ 1248 02f0 72       		.byte	114
+ 1249 02f1 6D       		.byte	109
+ 1250 02f2 6A       		.byte	106
+ 1251 02f3 69       		.byte	105
+ 1252 02f4 6B       		.byte	107
+ 1253 02f5 6E       		.byte	110
+ 1254 02f6 73       		.byte	115
+ 1255 02f7 78       		.byte	120
+ 1256 02f8 7F       		.byte	127
+ 1257 02f9 85       		.byte	-123
+ 1258 02fa 8B       		.byte	-117
+ 1259 02fb 90       		.byte	-112
+ 1260 02fc 93       		.byte	-109
+ 1261 02fd 93       		.byte	-109
+ 1262 02fe 92       		.byte	-110
+ 1263 02ff 8F       		.byte	-113
+ 1264 0300 8B       		.byte	-117
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 26
+
+
+ 1265 0301 85       		.byte	-123
+ 1266 0302 7F       		.byte	127
+ 1267 0303 79       		.byte	121
+ 1268 0304 73       		.byte	115
+ 1269 0305 6F       		.byte	111
+ 1270 0306 6C       		.byte	108
+ 1271 0307 6C       		.byte	108
+ 1272 0308 6D       		.byte	109
+ 1273 0309 6F       		.byte	111
+ 1274 030a 74       		.byte	116
+ 1275 030b 79       		.byte	121
+ 1276 030c 7F       		.byte	127
+ 1277 030d 85       		.byte	-123
+ 1278 030e 8A       		.byte	-118
+ 1279 030f 8E       		.byte	-114
+ 1280 0310 91       		.byte	-111
+ 1281 0311 92       		.byte	-110
+ 1282 0312 91       		.byte	-111
+ 1283 0313 8E       		.byte	-114
+ 1284 0314 8A       		.byte	-118
+ 1285 0315 85       		.byte	-123
+ 1286 0316 7F       		.byte	127
+ 1287 0317 79       		.byte	121
+ 1288 0318 74       		.byte	116
+ 1289 0319 71       		.byte	113
+ 1290 031a 6E       		.byte	110
+ 1291 031b 6D       		.byte	109
+ 1292 031c 6E       		.byte	110
+ 1293 031d 71       		.byte	113
+ 1294 031e 75       		.byte	117
+ 1295 031f 7A       		.byte	122
+ 1296 0320 7F       		.byte	127
+ 1297 0321 84       		.byte	-124
+ 1298 0322 89       		.byte	-119
+ 1299 0323 8D       		.byte	-115
+ 1300 0324 8F       		.byte	-113
+ 1301 0325 90       		.byte	-112
+ 1302 0326 8F       		.byte	-113
+ 1303 0327 8C       		.byte	-116
+ 1304 0328 89       		.byte	-119
+ 1305 0329 84       		.byte	-124
+ 1306 032a 7F       		.byte	127
+ 1307 032b 7A       		.byte	122
+ 1308 032c 75       		.byte	117
+ 1309 032d 72       		.byte	114
+ 1310 032e 70       		.byte	112
+ 1311 032f 6F       		.byte	111
+ 1312 0330 70       		.byte	112
+ 1313 0331 72       		.byte	114
+ 1314 0332 76       		.byte	118
+ 1315 0333 7A       		.byte	122
+ 1316 0334 7F       		.byte	127
+ 1317 0335 84       		.byte	-124
+ 1318 0336 88       		.byte	-120
+ 1319 0337 8B       		.byte	-117
+ 1320 0338 8D       		.byte	-115
+ 1321 0339 8E       		.byte	-114
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 27
+
+
+ 1322 033a 8D       		.byte	-115
+ 1323 033b 8B       		.byte	-117
+ 1324 033c 88       		.byte	-120
+ 1325 033d 84       		.byte	-124
+ 1326 033e 7F       		.byte	127
+ 1327 033f 7A       		.byte	122
+ 1328 0340 76       		.byte	118
+ 1329 0341 73       		.byte	115
+ 1330 0342 71       		.byte	113
+ 1331 0343 71       		.byte	113
+ 1332 0344 71       		.byte	113
+ 1333 0345 73       		.byte	115
+ 1334 0346 77       		.byte	119
+ 1335 0347 7B       		.byte	123
+ 1336 0348 7F       		.byte	127
+ 1337 0349 83       		.byte	-125
+ 1338 034a 87       		.byte	-121
+ 1339 034b 8A       		.byte	-118
+ 1340 034c 8C       		.byte	-116
+ 1341 034d 8D       		.byte	-115
+ 1342 034e 8C       		.byte	-116
+ 1343 034f 8A       		.byte	-118
+ 1344 0350 87       		.byte	-121
+ 1345 0351 83       		.byte	-125
+ 1346 0352 7F       		.byte	127
+ 1347 0353 7B       		.byte	123
+ 1348 0354 77       		.byte	119
+ 1349 0355 74       		.byte	116
+ 1350 0356 73       		.byte	115
+ 1351 0357 72       		.byte	114
+ 1352 0358 73       		.byte	115
+ 1353 0359 75       		.byte	117
+ 1354 035a 77       		.byte	119
+ 1355 035b 7B       		.byte	123
+ 1356 035c 7F       		.byte	127
+ 1357 035d 83       		.byte	-125
+ 1358 035e 86       		.byte	-122
+ 1359 035f 89       		.byte	-119
+ 1360 0360 8B       		.byte	-117
+ 1361 0361 8B       		.byte	-117
+ 1362 0362 8B       		.byte	-117
+ 1363 0363 89       		.byte	-119
+ 1364 0364 86       		.byte	-122
+ 1365 0365 83       		.byte	-125
+ 1366 0366 7F       		.byte	127
+ 1367 0367 7B       		.byte	123
+ 1368 0368 78       		.byte	120
+ 1369 0369 75       		.byte	117
+ 1370 036a 74       		.byte	116
+ 1371 036b 73       		.byte	115
+ 1372 036c 74       		.byte	116
+ 1373 036d 76       		.byte	118
+ 1374 036e 78       		.byte	120
+ 1375 036f 7B       		.byte	123
+ 1376 0370 7F       		.byte	127
+ 1377 0371 83       		.byte	-125
+ 1378 0372 86       		.byte	-122
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 28
+
+
+ 1379 0373 88       		.byte	-120
+ 1380 0374 8A       		.byte	-118
+ 1381 0375 8A       		.byte	-118
+ 1382 0376 8A       		.byte	-118
+ 1383 0377 88       		.byte	-120
+ 1384 0378 86       		.byte	-122
+ 1385 0379 82       		.byte	-126
+ 1386 037a 7F       		.byte	127
+ 1387 037b 7C       		.byte	124
+ 1388 037c 79       		.byte	121
+ 1389 037d 76       		.byte	118
+ 1390 037e 75       		.byte	117
+ 1391 037f 74       		.byte	116
+ 1392 0380 75       		.byte	117
+ 1393 0381 76       		.byte	118
+ 1394 0382 79       		.byte	121
+ 1395 0383 7C       		.byte	124
+ 1396 0384 7F       		.byte	127
+ 1397 0385 82       		.byte	-126
+ 1398 0386 85       		.byte	-123
+ 1399 0387 87       		.byte	-121
+ 1400 0388 89       		.byte	-119
+ 1401 0389 89       		.byte	-119
+ 1402 038a 89       		.byte	-119
+ 1403 038b 87       		.byte	-121
+ 1404 038c 85       		.byte	-123
+ 1405 038d 82       		.byte	-126
+ 1406 038e 7F       		.byte	127
+ 1407 038f 7C       		.byte	124
+ 1408 0390 79       		.byte	121
+ 1409 0391 77       		.byte	119
+ 1410 0392 76       		.byte	118
+ 1411 0393 75       		.byte	117
+ 1412 0394 76       		.byte	118
+ 1413 0395 77       		.byte	119
+ 1414 0396 79       		.byte	121
+ 1415 0397 7C       		.byte	124
+ 1416 0398 7F       		.byte	127
+ 1417 0399 82       		.byte	-126
+ 1418 039a 84       		.byte	-124
+ 1419 039b 87       		.byte	-121
+ 1420 039c 88       		.byte	-120
+ 1421 039d 88       		.byte	-120
+ 1422 039e 88       		.byte	-120
+ 1423 039f 86       		.byte	-122
+ 1424 03a0 84       		.byte	-124
+ 1425 03a1 82       		.byte	-126
+ 1426 03a2 7F       		.byte	127
+ 1427 03a3 7C       		.byte	124
+ 1428 03a4 7A       		.byte	122
+ 1429 03a5 78       		.byte	120
+ 1430 03a6 77       		.byte	119
+ 1431 03a7 76       		.byte	118
+ 1432 03a8 77       		.byte	119
+ 1433 03a9 78       		.byte	120
+ 1434 03aa 7A       		.byte	122
+ 1435 03ab 7C       		.byte	124
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 29
+
+
+ 1436 03ac 7F       		.byte	127
+ 1437 03ad 82       		.byte	-126
+ 1438 03ae 84       		.byte	-124
+ 1439 03af 86       		.byte	-122
+ 1440 03b0 87       		.byte	-121
+ 1441 03b1 87       		.byte	-121
+ 1442 03b2 87       		.byte	-121
+ 1443 03b3 86       		.byte	-122
+ 1444 03b4 84       		.byte	-124
+ 1445 03b5 82       		.byte	-126
+ 1446 03b6 7F       		.byte	127
+ 1447 03b7 7D       		.byte	125
+ 1448 03b8 7A       		.byte	122
+ 1449 03b9 79       		.byte	121
+ 1450 03ba 77       		.byte	119
+ 1451 03bb 77       		.byte	119
+ 1452 03bc 78       		.byte	120
+ 1453 03bd 79       		.byte	121
+ 1454 03be 7A       		.byte	122
+ 1455 03bf 7D       		.byte	125
+ 1456 03c0 7F       		.byte	127
+ 1457 03c1 81       		.byte	-127
+ 1458 03c2 83       		.byte	-125
+ 1459 03c3 85       		.byte	-123
+ 1460 03c4 86       		.byte	-122
+ 1461 03c5 87       		.byte	-121
+ 1462 03c6 86       		.byte	-122
+ 1463 03c7 85       		.byte	-123
+ 1464 03c8 83       		.byte	-125
+ 1465 03c9 81       		.byte	-127
+ 1466 03ca 7F       		.byte	127
+ 1467 03cb 7D       		.byte	125
+ 1468 03cc 7B       		.byte	123
+ 1469 03cd 79       		.byte	121
+ 1470 03ce 78       		.byte	120
+ 1471 03cf 78       		.byte	120
+ 1472 03d0 78       		.byte	120
+ 1473 03d1 79       		.byte	121
+ 1474 03d2 7B       		.byte	123
+ 1475 03d3 7D       		.byte	125
+ 1476 03d4 7F       		.byte	127
+ 1477 03d5 81       		.byte	-127
+ 1478 03d6 83       		.byte	-125
+ 1479 03d7 85       		.byte	-123
+ 1480 03d8 86       		.byte	-122
+ 1481 03d9 86       		.byte	-122
+ 1482 03da 85       		.byte	-123
+ 1483 03db 84       		.byte	-124
+ 1484 03dc 83       		.byte	-125
+ 1485 03dd 81       		.byte	-127
+ 1486 03de 7F       		.byte	127
+ 1487 03df 7D       		.byte	125
+ 1488 03e0 7B       		.byte	123
+ 1489 03e1 7A       		.byte	122
+ 1490 03e2 79       		.byte	121
+ 1491 03e3 79       		.byte	121
+ 1492 03e4 79       		.byte	121
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 30
+
+
+ 1493 03e5 7A       		.byte	122
+ 1494 03e6 7B       		.byte	123
+ 1495 03e7 7D       		.byte	125
+ 1496 03e8 7F       		.byte	127
+ 1497 03e9 81       		.byte	-127
+ 1498 03ea 83       		.byte	-125
+ 1499 03eb 84       		.byte	-124
+ 1500 03ec 85       		.byte	-123
+ 1501 03ed 85       		.byte	-123
+ 1502 03ee 85       		.byte	-123
+ 1503 03ef 84       		.byte	-124
+ 1504 03f0 83       		.byte	-125
+ 1505 03f1 81       		.byte	-127
+ 1506 03f2 7F       		.byte	127
+ 1507 03f3 7D       		.byte	125
+ 1508 03f4 7B       		.byte	123
+ 1509 03f5 7A       		.byte	122
+ 1510 03f6 79       		.byte	121
+ 1511 03f7 79       		.byte	121
+ 1512 03f8 79       		.byte	121
+ 1513 03f9 7A       		.byte	122
+ 1514 03fa 7C       		.byte	124
+ 1515 03fb 7D       		.byte	125
+ 1516 03fc 7F       		.byte	127
+ 1517 03fd 81       		.byte	-127
+ 1518 03fe 82       		.byte	-126
+ 1519 03ff 84       		.byte	-124
+ 1520 0400 84       		.byte	-124
+ 1521 0401 85       		.byte	-123
+ 1522 0402 84       		.byte	-124
+ 1523 0403 83       		.byte	-125
+ 1524 0404 82       		.byte	-126
+ 1525 0405 81       		.byte	-127
+ 1526 0406 7F       		.byte	127
+ 1527 0407 7D       		.byte	125
+ 1528 0408 7C       		.byte	124
+ 1529 0409 7B       		.byte	123
+ 1530 040a 7A       		.byte	122
+ 1531 040b 7A       		.byte	122
+ 1532 040c 7A       		.byte	122
+ 1533 040d 7B       		.byte	123
+ 1534 040e 7C       		.byte	124
+ 1535 040f 7D       		.byte	125
+ 1536 0410 7F       		.byte	127
+ 1537 0411 81       		.byte	-127
+ 1538 0412 82       		.byte	-126
+ 1539 0413 83       		.byte	-125
+ 1540 0414 84       		.byte	-124
+ 1541 0415 84       		.byte	-124
+ 1542 0416 84       		.byte	-124
+ 1543 0417 83       		.byte	-125
+ 1544 0418 82       		.byte	-126
+ 1545 0419 81       		.byte	-127
+ 1546 041a 7F       		.byte	127
+ 1547 041b 7D       		.byte	125
+ 1548 041c 7C       		.byte	124
+ 1549 041d 7B       		.byte	123
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 31
+
+
+ 1550 041e 7A       		.byte	122
+ 1551 041f 7A       		.byte	122
+ 1552 0420 7A       		.byte	122
+ 1553 0421 7B       		.byte	123
+ 1554 0422 7C       		.byte	124
+ 1555 0423 7E       		.byte	126
+ 1556 0424 7F       		.byte	127
+ 1557 0425 80       		.byte	-128
+ 1558 0426 82       		.byte	-126
+ 1559 0427 83       		.byte	-125
+ 1560 0428 83       		.byte	-125
+ 1561 0429 84       		.byte	-124
+ 1562 042a 83       		.byte	-125
+ 1563 042b 83       		.byte	-125
+ 1564 042c 82       		.byte	-126
+ 1565 042d 80       		.byte	-128
+ 1566 042e 7F       		.byte	127
+ 1567 042f 7E       		.byte	126
+ 1568 0430 7C       		.byte	124
+ 1569 0431 7B       		.byte	123
+ 1570 0432 7B       		.byte	123
+ 1571 0433 7B       		.byte	123
+ 1572 0434 7B       		.byte	123
+ 1573 0435 7C       		.byte	124
+ 1574 0436 7C       		.byte	124
+ 1575 0437 7E       		.byte	126
+ 1576 0438 7F       		.byte	127
+ 1577 0439 80       		.byte	-128
+ 1578 043a 81       		.byte	-127
+ 1579 043b 82       		.byte	-126
+ 1580 043c 83       		.byte	-125
+ 1581 043d 83       		.byte	-125
+ 1582 043e 83       		.byte	-125
+ 1583 043f 82       		.byte	-126
+ 1584 0440 81       		.byte	-127
+ 1585 0441 80       		.byte	-128
+ 1586 0442 7F       		.byte	127
+ 1587 0443 7E       		.byte	126
+ 1588 0444 7D       		.byte	125
+ 1589 0445 7C       		.byte	124
+ 1590 0446 7B       		.byte	123
+ 1591 0447 7B       		.byte	123
+ 1592 0448 7B       		.byte	123
+ 1593 0449 7C       		.byte	124
+ 1594 044a 7D       		.byte	125
+ 1595 044b 7E       		.byte	126
+ 1596 044c 7F       		.byte	127
+ 1597 044d 80       		.byte	-128
+ 1598 044e 81       		.byte	-127
+ 1599 044f 82       		.byte	-126
+ 1600 0450 83       		.byte	-125
+ 1601 0451 83       		.byte	-125
+ 1602 0452 83       		.byte	-125
+ 1603 0453 82       		.byte	-126
+ 1604 0454 81       		.byte	-127
+ 1605 0455 80       		.byte	-128
+ 1606 0456 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 32
+
+
+ 1607 0457 7E       		.byte	126
+ 1608 0458 7D       		.byte	125
+ 1609 0459 7C       		.byte	124
+ 1610 045a 7C       		.byte	124
+ 1611 045b 7B       		.byte	123
+ 1612 045c 7C       		.byte	124
+ 1613 045d 7C       		.byte	124
+ 1614 045e 7D       		.byte	125
+ 1615 045f 7E       		.byte	126
+ 1616 0460 7F       		.byte	127
+ 1617 0461 80       		.byte	-128
+ 1618 0462 81       		.byte	-127
+ 1619 0463 82       		.byte	-126
+ 1620 0464 82       		.byte	-126
+ 1621 0465 82       		.byte	-126
+ 1622 0466 82       		.byte	-126
+ 1623 0467 82       		.byte	-126
+ 1624 0468 81       		.byte	-127
+ 1625 0469 80       		.byte	-128
+ 1626 046a 7F       		.byte	127
+ 1627 046b 7E       		.byte	126
+ 1628 046c 7D       		.byte	125
+ 1629 046d 7C       		.byte	124
+ 1630 046e 7C       		.byte	124
+ 1631 046f 7C       		.byte	124
+ 1632 0470 7C       		.byte	124
+ 1633 0471 7C       		.byte	124
+ 1634 0472 7D       		.byte	125
+ 1635 0473 7E       		.byte	126
+ 1636 0474 7F       		.byte	127
+ 1637 0475 80       		.byte	-128
+ 1638 0476 81       		.byte	-127
+ 1639 0477 82       		.byte	-126
+ 1640 0478 82       		.byte	-126
+ 1641 0479 82       		.byte	-126
+ 1642 047a 82       		.byte	-126
+ 1643 047b 81       		.byte	-127
+ 1644 047c 81       		.byte	-127
+ 1645 047d 80       		.byte	-128
+ 1646 047e 7F       		.byte	127
+ 1647 047f 7E       		.byte	126
+ 1648 0480 7D       		.byte	125
+ 1649 0481 7D       		.byte	125
+ 1650 0482 7C       		.byte	124
+ 1651 0483 7C       		.byte	124
+ 1652 0484 7C       		.byte	124
+ 1653 0485 7D       		.byte	125
+ 1654 0486 7D       		.byte	125
+ 1655 0487 7E       		.byte	126
+ 1656 0488 7F       		.byte	127
+ 1657 0489 80       		.byte	-128
+ 1658 048a 81       		.byte	-127
+ 1659 048b 81       		.byte	-127
+ 1660 048c 82       		.byte	-126
+ 1661 048d 82       		.byte	-126
+ 1662 048e 82       		.byte	-126
+ 1663 048f 81       		.byte	-127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 33
+
+
+ 1664 0490 81       		.byte	-127
+ 1665 0491 80       		.byte	-128
+ 1666 0492 7F       		.byte	127
+ 1667 0493 7E       		.byte	126
+ 1668 0494 7D       		.byte	125
+ 1669 0495 7D       		.byte	125
+ 1670 0496 7C       		.byte	124
+ 1671 0497 7C       		.byte	124
+ 1672 0498 7D       		.byte	125
+ 1673 0499 7D       		.byte	125
+ 1674 049a 7D       		.byte	125
+ 1675 049b 7E       		.byte	126
+ 1676 049c 7F       		.byte	127
+ 1677 049d 80       		.byte	-128
+ 1678 049e 80       		.byte	-128
+ 1679 049f 81       		.byte	-127
+ 1680 04a0 81       		.byte	-127
+ 1681 04a1 82       		.byte	-126
+ 1682 04a2 81       		.byte	-127
+ 1683 04a3 81       		.byte	-127
+ 1684 04a4 80       		.byte	-128
+ 1685 04a5 80       		.byte	-128
+ 1686 04a6 7F       		.byte	127
+ 1687 04a7 7E       		.byte	126
+ 1688 04a8 7E       		.byte	126
+ 1689 04a9 7D       		.byte	125
+ 1690 04aa 7D       		.byte	125
+ 1691 04ab 7D       		.byte	125
+ 1692 04ac 7D       		.byte	125
+ 1693 04ad 7D       		.byte	125
+ 1694 04ae 7E       		.byte	126
+ 1695 04af 7E       		.byte	126
+ 1696 04b0 7F       		.byte	127
+ 1697 04b1 80       		.byte	-128
+ 1698 04b2 80       		.byte	-128
+ 1699 04b3 81       		.byte	-127
+ 1700 04b4 81       		.byte	-127
+ 1701 04b5 81       		.byte	-127
+ 1702 04b6 81       		.byte	-127
+ 1703 04b7 81       		.byte	-127
+ 1704 04b8 80       		.byte	-128
+ 1705 04b9 80       		.byte	-128
+ 1706 04ba 7F       		.byte	127
+ 1707 04bb 7E       		.byte	126
+ 1708 04bc 7E       		.byte	126
+ 1709 04bd 7D       		.byte	125
+ 1710 04be 7D       		.byte	125
+ 1711 04bf 7D       		.byte	125
+ 1712 04c0 7D       		.byte	125
+ 1713 04c1 7D       		.byte	125
+ 1714 04c2 7E       		.byte	126
+ 1715 04c3 7E       		.byte	126
+ 1716 04c4 7F       		.byte	127
+ 1717 04c5 80       		.byte	-128
+ 1718 04c6 80       		.byte	-128
+ 1719 04c7 81       		.byte	-127
+ 1720 04c8 81       		.byte	-127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 34
+
+
+ 1721 04c9 81       		.byte	-127
+ 1722 04ca 81       		.byte	-127
+ 1723 04cb 81       		.byte	-127
+ 1724 04cc 80       		.byte	-128
+ 1725 04cd 80       		.byte	-128
+ 1726 04ce 7F       		.byte	127
+ 1727 04cf 7E       		.byte	126
+ 1728 04d0 7E       		.byte	126
+ 1729 04d1 7D       		.byte	125
+ 1730 04d2 7D       		.byte	125
+ 1731 04d3 7D       		.byte	125
+ 1732 04d4 7D       		.byte	125
+ 1733 04d5 7D       		.byte	125
+ 1734 04d6 7E       		.byte	126
+ 1735 04d7 7E       		.byte	126
+ 1736 04d8 7F       		.byte	127
+ 1737 04d9 80       		.byte	-128
+ 1738 04da 80       		.byte	-128
+ 1739 04db 81       		.byte	-127
+ 1740 04dc 81       		.byte	-127
+ 1741 04dd 81       		.byte	-127
+ 1742 04de 81       		.byte	-127
+ 1743 04df 80       		.byte	-128
+ 1744 04e0 80       		.byte	-128
+ 1745 04e1 80       		.byte	-128
+ 1746 04e2 7F       		.byte	127
+ 1747 04e3 7E       		.byte	126
+ 1748 04e4 7E       		.byte	126
+ 1749 04e5 7E       		.byte	126
+ 1750 04e6 7D       		.byte	125
+ 1751 04e7 7D       		.byte	125
+ 1752 04e8 7D       		.byte	125
+ 1753 04e9 7E       		.byte	126
+ 1754 04ea 7E       		.byte	126
+ 1755 04eb 7E       		.byte	126
+ 1756 04ec 7F       		.byte	127
+ 1757 04ed 80       		.byte	-128
+ 1758 04ee 80       		.byte	-128
+ 1759 04ef 80       		.byte	-128
+ 1760 04f0 81       		.byte	-127
+ 1761 04f1 81       		.byte	-127
+ 1762 04f2 81       		.byte	-127
+ 1763 04f3 80       		.byte	-128
+ 1764 04f4 80       		.byte	-128
+ 1765 04f5 80       		.byte	-128
+ 1766 04f6 7F       		.byte	127
+ 1767 04f7 7E       		.byte	126
+ 1768 04f8 7E       		.byte	126
+ 1769 04f9 7E       		.byte	126
+ 1770 04fa 7D       		.byte	125
+ 1771 04fb 7D       		.byte	125
+ 1772 04fc 7D       		.byte	125
+ 1773 04fd 7E       		.byte	126
+ 1774 04fe 7E       		.byte	126
+ 1775 04ff 7F       		.byte	127
+ 1776 0500 7F       		.byte	127
+ 1777 0501 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 35
+
+
+ 1778 0502 80       		.byte	-128
+ 1779 0503 80       		.byte	-128
+ 1780 0504 80       		.byte	-128
+ 1781 0505 81       		.byte	-127
+ 1782 0506 80       		.byte	-128
+ 1783 0507 80       		.byte	-128
+ 1784 0508 80       		.byte	-128
+ 1785 0509 7F       		.byte	127
+ 1786 050a 7F       		.byte	127
+ 1787 050b 7F       		.byte	127
+ 1788 050c 7E       		.byte	126
+ 1789 050d 7E       		.byte	126
+ 1790 050e 7E       		.byte	126
+ 1791 050f 7E       		.byte	126
+ 1792 0510 7E       		.byte	126
+ 1793 0511 7E       		.byte	126
+ 1794 0512 7E       		.byte	126
+ 1795 0513 7F       		.byte	127
+ 1796 0514 7F       		.byte	127
+ 1797 0515 7F       		.byte	127
+ 1798 0516 80       		.byte	-128
+ 1799 0517 80       		.byte	-128
+ 1800 0518 80       		.byte	-128
+ 1801 0519 80       		.byte	-128
+ 1802 051a 80       		.byte	-128
+ 1803 051b 80       		.byte	-128
+ 1804 051c 80       		.byte	-128
+ 1805 051d 7F       		.byte	127
+ 1806 051e 7F       		.byte	127
+ 1807 051f 7F       		.byte	127
+ 1808 0520 7E       		.byte	126
+ 1809 0521 7E       		.byte	126
+ 1810 0522 7E       		.byte	126
+ 1811 0523 7E       		.byte	126
+ 1812 0524 7E       		.byte	126
+ 1813 0525 7E       		.byte	126
+ 1814 0526 7E       		.byte	126
+ 1815 0527 7F       		.byte	127
+ 1816 0528 7F       		.byte	127
+ 1817 0529 7F       		.byte	127
+ 1818 052a 80       		.byte	-128
+ 1819 052b 80       		.byte	-128
+ 1820 052c 80       		.byte	-128
+ 1821 052d 80       		.byte	-128
+ 1822 052e 80       		.byte	-128
+ 1823 052f 80       		.byte	-128
+ 1824 0530 80       		.byte	-128
+ 1825 0531 7F       		.byte	127
+ 1826 0532 7F       		.byte	127
+ 1827 0533 7F       		.byte	127
+ 1828 0534 7E       		.byte	126
+ 1829 0535 7E       		.byte	126
+ 1830 0536 7E       		.byte	126
+ 1831 0537 7E       		.byte	126
+ 1832 0538 7E       		.byte	126
+ 1833 0539 7E       		.byte	126
+ 1834 053a 7E       		.byte	126
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 36
+
+
+ 1835 053b 7F       		.byte	127
+ 1836 053c 7F       		.byte	127
+ 1837 053d 7F       		.byte	127
+ 1838 053e 80       		.byte	-128
+ 1839 053f 80       		.byte	-128
+ 1840 0540 80       		.byte	-128
+ 1841 0541 80       		.byte	-128
+ 1842 0542 80       		.byte	-128
+ 1843 0543 80       		.byte	-128
+ 1844 0544 80       		.byte	-128
+ 1845 0545 7F       		.byte	127
+ 1846 0546 7F       		.byte	127
+ 1847 0547 7F       		.byte	127
+ 1848 0548 7E       		.byte	126
+ 1849 0549 7E       		.byte	126
+ 1850 054a 7E       		.byte	126
+ 1851 054b 7E       		.byte	126
+ 1852 054c 7E       		.byte	126
+ 1853 054d 7E       		.byte	126
+ 1854 054e 7E       		.byte	126
+ 1855 054f 7F       		.byte	127
+ 1856 0550 7F       		.byte	127
+ 1857 0551 7F       		.byte	127
+ 1858 0552 80       		.byte	-128
+ 1859 0553 80       		.byte	-128
+ 1860 0554 80       		.byte	-128
+ 1861 0555 80       		.byte	-128
+ 1862 0556 80       		.byte	-128
+ 1863 0557 80       		.byte	-128
+ 1864 0558 80       		.byte	-128
+ 1865 0559 7F       		.byte	127
+ 1866 055a 7F       		.byte	127
+ 1867 055b 7F       		.byte	127
+ 1868 055c 7E       		.byte	126
+ 1869 055d 7E       		.byte	126
+ 1870 055e 7E       		.byte	126
+ 1871 055f 7E       		.byte	126
+ 1872 0560 7E       		.byte	126
+ 1873 0561 7E       		.byte	126
+ 1874 0562 7E       		.byte	126
+ 1875 0563 7F       		.byte	127
+ 1876 0564 7F       		.byte	127
+ 1877 0565 7F       		.byte	127
+ 1878 0566 80       		.byte	-128
+ 1879 0567 80       		.byte	-128
+ 1880 0568 80       		.byte	-128
+ 1881 0569 80       		.byte	-128
+ 1882 056a 80       		.byte	-128
+ 1883 056b 80       		.byte	-128
+ 1884 056c 80       		.byte	-128
+ 1885 056d 7F       		.byte	127
+ 1886 056e 7F       		.byte	127
+ 1887 056f 7F       		.byte	127
+ 1888 0570 7E       		.byte	126
+ 1889 0571 7E       		.byte	126
+ 1890 0572 7E       		.byte	126
+ 1891 0573 7E       		.byte	126
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 37
+
+
+ 1892 0574 7E       		.byte	126
+ 1893 0575 7E       		.byte	126
+ 1894 0576 7E       		.byte	126
+ 1895 0577 7F       		.byte	127
+ 1896 0578 7F       		.byte	127
+ 1897 0579 7F       		.byte	127
+ 1898 057a 7F       		.byte	127
+ 1899 057b 80       		.byte	-128
+ 1900 057c 80       		.byte	-128
+ 1901 057d 80       		.byte	-128
+ 1902 057e 80       		.byte	-128
+ 1903 057f 80       		.byte	-128
+ 1904 0580 7F       		.byte	127
+ 1905 0581 7F       		.byte	127
+ 1906 0582 7F       		.byte	127
+ 1907 0583 7F       		.byte	127
+ 1908 0584 7F       		.byte	127
+ 1909 0585 7E       		.byte	126
+ 1910 0586 7E       		.byte	126
+ 1911 0587 7E       		.byte	126
+ 1912 0588 7E       		.byte	126
+ 1913 0589 7E       		.byte	126
+ 1914 058a 7F       		.byte	127
+ 1915 058b 7F       		.byte	127
+ 1916 058c 7F       		.byte	127
+ 1917 058d 7F       		.byte	127
+ 1918 058e 7F       		.byte	127
+ 1919 058f 80       		.byte	-128
+ 1920 0590 80       		.byte	-128
+ 1921 0591 80       		.byte	-128
+ 1922 0592 80       		.byte	-128
+ 1923 0593 80       		.byte	-128
+ 1924 0594 7F       		.byte	127
+ 1925 0595 7F       		.byte	127
+ 1926 0596 7F       		.byte	127
+ 1927 0597 7F       		.byte	127
+ 1928 0598 7F       		.byte	127
+ 1929 0599 7E       		.byte	126
+ 1930 059a 7E       		.byte	126
+ 1931 059b 7E       		.byte	126
+ 1932 059c 7E       		.byte	126
+ 1933 059d 7E       		.byte	126
+ 1934 059e 7F       		.byte	127
+ 1935 059f 7F       		.byte	127
+ 1936 05a0 7F       		.byte	127
+ 1937 05a1 7F       		.byte	127
+ 1938 05a2 7F       		.byte	127
+ 1939 05a3 80       		.byte	-128
+ 1940 05a4 80       		.byte	-128
+ 1941 05a5 80       		.byte	-128
+ 1942 05a6 80       		.byte	-128
+ 1943 05a7 80       		.byte	-128
+ 1944 05a8 7F       		.byte	127
+ 1945 05a9 7F       		.byte	127
+ 1946 05aa 7F       		.byte	127
+ 1947 05ab 7F       		.byte	127
+ 1948 05ac 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 38
+
+
+ 1949 05ad 7E       		.byte	126
+ 1950 05ae 7E       		.byte	126
+ 1951 05af 7E       		.byte	126
+ 1952 05b0 7E       		.byte	126
+ 1953 05b1 7E       		.byte	126
+ 1954 05b2 7F       		.byte	127
+ 1955 05b3 7F       		.byte	127
+ 1956 05b4 7F       		.byte	127
+ 1957 05b5 7F       		.byte	127
+ 1958 05b6 7F       		.byte	127
+ 1959 05b7 80       		.byte	-128
+ 1960 05b8 80       		.byte	-128
+ 1961 05b9 80       		.byte	-128
+ 1962 05ba 80       		.byte	-128
+ 1963 05bb 7F       		.byte	127
+ 1964 05bc 7F       		.byte	127
+ 1965 05bd 7F       		.byte	127
+ 1966 05be 7F       		.byte	127
+ 1967 05bf 7F       		.byte	127
+ 1968 05c0 7F       		.byte	127
+ 1969 05c1 7F       		.byte	127
+ 1970 05c2 7E       		.byte	126
+ 1971 05c3 7E       		.byte	126
+ 1972 05c4 7E       		.byte	126
+ 1973 05c5 7F       		.byte	127
+ 1974 05c6 7F       		.byte	127
+ 1975 05c7 7F       		.byte	127
+ 1976 05c8 7F       		.byte	127
+ 1977 05c9 7F       		.byte	127
+ 1978 05ca 7F       		.byte	127
+ 1979 05cb 7F       		.byte	127
+ 1980 05cc 80       		.byte	-128
+ 1981 05cd 80       		.byte	-128
+ 1982 05ce 80       		.byte	-128
+ 1983 05cf 7F       		.byte	127
+ 1984 05d0 7F       		.byte	127
+ 1985 05d1 7F       		.byte	127
+ 1986 05d2 7F       		.byte	127
+ 1987 05d3 7F       		.byte	127
+ 1988 05d4 7F       		.byte	127
+ 1989 05d5 7F       		.byte	127
+ 1990 05d6 7E       		.byte	126
+ 1991 05d7 7E       		.byte	126
+ 1992 05d8 7E       		.byte	126
+ 1993 05d9 7F       		.byte	127
+ 1994 05da 7F       		.byte	127
+ 1995 05db 7F       		.byte	127
+ 1996 05dc 7F       		.byte	127
+ 1997 05dd 7F       		.byte	127
+ 1998 05de 7F       		.byte	127
+ 1999 05df 7F       		.byte	127
+ 2000 05e0 7F       		.byte	127
+ 2001 05e1 80       		.byte	-128
+ 2002 05e2 7F       		.byte	127
+ 2003 05e3 7F       		.byte	127
+ 2004 05e4 7F       		.byte	127
+ 2005 05e5 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 39
+
+
+ 2006 05e6 7F       		.byte	127
+ 2007 05e7 7F       		.byte	127
+ 2008 05e8 7F       		.byte	127
+ 2009 05e9 7F       		.byte	127
+ 2010 05ea 7F       		.byte	127
+ 2011 05eb 7F       		.byte	127
+ 2012 05ec 7F       		.byte	127
+ 2013 05ed 7F       		.byte	127
+ 2014 05ee 7F       		.byte	127
+ 2015 05ef 7F       		.byte	127
+ 2016 05f0 7F       		.byte	127
+ 2017 05f1 7F       		.byte	127
+ 2018 05f2 7F       		.byte	127
+ 2019 05f3 7F       		.byte	127
+ 2020 05f4 7F       		.byte	127
+ 2021 05f5 7F       		.byte	127
+ 2022 05f6 7F       		.byte	127
+ 2023 05f7 7F       		.byte	127
+ 2024 05f8 7F       		.byte	127
+ 2025 05f9 7F       		.byte	127
+ 2026 05fa 7F       		.byte	127
+ 2027 05fb 7F       		.byte	127
+ 2028 05fc 7F       		.byte	127
+ 2029 05fd 7F       		.byte	127
+ 2030 05fe 7F       		.byte	127
+ 2031 05ff 7F       		.byte	127
+ 2032 0600 7F       		.byte	127
+ 2033 0601 7F       		.byte	127
+ 2034 0602 7F       		.byte	127
+ 2035 0603 7F       		.byte	127
+ 2036 0604 7F       		.byte	127
+ 2037 0605 7F       		.byte	127
+ 2038 0606 7F       		.byte	127
+ 2039 0607 7F       		.byte	127
+ 2040 0608 7F       		.byte	127
+ 2041 0609 7F       		.byte	127
+ 2042 060a 7F       		.byte	127
+ 2043 060b 7F       		.byte	127
+ 2044 060c 7F       		.byte	127
+ 2045 060d 7F       		.byte	127
+ 2046 060e 7F       		.byte	127
+ 2047 060f 7F       		.byte	127
+ 2048 0610 7F       		.byte	127
+ 2049 0611 7F       		.byte	127
+ 2050 0612 7F       		.byte	127
+ 2051 0613 7F       		.byte	127
+ 2052 0614 7F       		.byte	127
+ 2053 0615 7F       		.byte	127
+ 2054 0616 7F       		.byte	127
+ 2055 0617 7F       		.byte	127
+ 2056 0618 7F       		.byte	127
+ 2057 0619 7F       		.byte	127
+ 2058 061a 7F       		.byte	127
+ 2059 061b 7F       		.byte	127
+ 2060 061c 7F       		.byte	127
+ 2061 061d 7F       		.byte	127
+ 2062 061e 7F       		.byte	127
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 40
+
+
+ 2063 061f 7F       		.byte	127
+ 2064 0620 7F       		.byte	127
+ 2065 0621 7F       		.byte	127
+ 2066 0622 7F       		.byte	127
+ 2067 0623 7F       		.byte	127
+ 2068 0624 7F       		.byte	127
+ 2069 0625 7F       		.byte	127
+ 2070 0626 7F       		.byte	127
+ 2071 0627 7F       		.byte	127
+ 2072 0628 7F       		.byte	127
+ 2073 0629 7F       		.byte	127
+ 2074 062a 7F       		.byte	127
+ 2075 062b 7F       		.byte	127
+ 2076 062c 7F       		.byte	127
+ 2077 062d 7F       		.byte	127
+ 2078 062e 7F       		.byte	127
+ 2079 062f 7F       		.byte	127
+ 2080 0630 7F       		.byte	127
+ 2081 0631 7F       		.byte	127
+ 2082 0632 7F       		.byte	127
+ 2083 0633 7F       		.byte	127
+ 2084 0634 7F       		.byte	127
+ 2085 0635 7F       		.byte	127
+ 2086 0636 7F       		.byte	127
+ 2087 0637 7F       		.byte	127
+ 2088 0638 7F       		.byte	127
+ 2089 0639 7F       		.byte	127
+ 2090 063a 7F       		.byte	127
+ 2091 063b 7F       		.byte	127
+ 2092 063c 7F       		.byte	127
+ 2093 063d 7F       		.byte	127
+ 2094 063e 7F       		.byte	127
+ 2095 063f 7F       		.byte	127
+ 2096              		.type	Samples, %object
+ 2097              		.size	Samples, 20
+ 2098              	Samples:
+ 2099 0640 80       		.byte	-128
+ 2100 0641 A7       		.byte	-89
+ 2101 0642 CB       		.byte	-53
+ 2102 0643 E7       		.byte	-25
+ 2103 0644 F9       		.byte	-7
+ 2104 0645 FF       		.byte	-1
+ 2105 0646 F9       		.byte	-7
+ 2106 0647 E7       		.byte	-25
+ 2107 0648 CB       		.byte	-53
+ 2108 0649 A7       		.byte	-89
+ 2109 064a 80       		.byte	-128
+ 2110 064b 59       		.byte	89
+ 2111 064c 35       		.byte	53
+ 2112 064d 19       		.byte	25
+ 2113 064e 07       		.byte	7
+ 2114 064f 01       		.byte	1
+ 2115 0650 07       		.byte	7
+ 2116 0651 19       		.byte	25
+ 2117 0652 35       		.byte	53
+ 2118 0653 59       		.byte	89
+ 2119              		.data
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 41
+
+
+ 2120              		.align	2
+ 2121              		.set	.LANCHOR1,. + 0
+ 2122              		.type	Mode, %object
+ 2123              		.size	Mode, 4
+ 2124              	Mode:
+ 2125 0000 01000000 		.word	1
+ 2126              		.type	NumOfSamplesInPeriodExpFadingMod1, %object
+ 2127              		.size	NumOfSamplesInPeriodExpFadingMod1, 4
+ 2128              	NumOfSamplesInPeriodExpFadingMod1:
+ 2129 0004 90010000 		.word	400
+ 2130              		.type	NumOfSamplesInPeriodExpFadingMod2, %object
+ 2131              		.size	NumOfSamplesInPeriodExpFadingMod2, 4
+ 2132              	NumOfSamplesInPeriodExpFadingMod2:
+ 2133 0008 B0040000 		.word	1200
+ 2134              		.type	NumOfSamplesInPeriod, %object
+ 2135              		.size	NumOfSamplesInPeriod, 4
+ 2136              	NumOfSamplesInPeriod:
+ 2137 000c 14000000 		.word	20
+ 2138              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 2139              		.align	2
+ 2140              	.LC2:
+ 2141 0000 53746172 		.ascii	"Start  \000"
+ 2141      74202000 
+ 2142              	.LC21:
+ 2143 0008 45787046 		.ascii	"ExpFadingProcess\000"
+ 2143      6164696E 
+ 2143      6750726F 
+ 2143      63657373 
+ 2143      00
+ 2144 0019 000000   		.space	3
+ 2145              	.LC23:
+ 2146 001c 4D6F6420 		.ascii	"Mod 1\000"
+ 2146      3100
+ 2147 0022 0000     		.space	2
+ 2148              	.LC25:
+ 2149 0024 4D6F6420 		.ascii	"Mod 2\000"
+ 2149      3200
+ 2150              		.bss
+ 2151              		.align	2
+ 2152              		.set	.LANCHOR0,. + 0
+ 2153              		.type	MainIdx, %object
+ 2154              		.size	MainIdx, 4
+ 2155              	MainIdx:
+ 2156 0000 00000000 		.space	4
+ 2157              		.type	MainIdxExpFadingMod1, %object
+ 2158              		.size	MainIdxExpFadingMod1, 4
+ 2159              	MainIdxExpFadingMod1:
+ 2160 0004 00000000 		.space	4
+ 2161              		.type	MainIdxExpFadingMod2, %object
+ 2162              		.size	MainIdxExpFadingMod2, 4
+ 2163              	MainIdxExpFadingMod2:
+ 2164 0008 00000000 		.space	4
+ 2165              		.text
+ 2166              	.Letext0:
+ 2167              		.file 2 "Generated_Source\\PSoC4/isr_Start.h"
+ 2168              		.file 3 "Generated_Source\\PSoC4/isr_Start_1.h"
+ 2169              		.file 4 "Generated_Source\\PSoC4/Green_Led_Start.h"
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 42
+
+
+ 2170              		.file 5 "Generated_Source\\PSoC4/Green_Led_Start_Board.h"
+ 2171              		.file 6 "Generated_Source\\PSoC4/LCD_Char_1.h"
+ 2172              		.file 7 "Generated_Source\\PSoC4/Timer_Main.h"
+ 2173              		.file 8 "Generated_Source\\PSoC4/Timer_Duration.h"
+ 2174              		.file 9 "Generated_Source\\PSoC4/IDAC_1.h"
+ 2175              		.file 10 "Generated_Source\\PSoC4/Mode_1_LED.h"
+ 2176              		.file 11 "Generated_Source\\PSoC4/Mode_2_LED.h"
+ 2177              		.file 12 "Generated_Source\\PSoC4/isr_NextSample.h"
+ 2178              		.file 13 "Generated_Source\\PSoC4/isr_StopSamples.h"
+ 2179              		.file 14 "Generated_Source\\PSoC4/isr_Mode_1.h"
+ 2180              		.file 15 "Generated_Source\\PSoC4/isr_Mode_2.h"
+ 2181              		.file 16 "Generated_Source\\PSoC4/cytypes.h"
+ 2182              		.section	.debug_info,"",%progbits
+ 2183              	.Ldebug_info0:
+ 2184 0000 1E060000 		.4byte	0x61e
+ 2185 0004 0400     		.2byte	0x4
+ 2186 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 2187 000a 04       		.byte	0x4
+ 2188 000b 01       		.uleb128 0x1
+ 2189 000c 60020000 		.4byte	.LASF56
+ 2190 0010 0C       		.byte	0xc
+ 2191 0011 20030000 		.4byte	.LASF57
+ 2192 0015 10040000 		.4byte	.LASF58
+ 2193 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 2194 001d 00000000 		.4byte	0
+ 2195 0021 00000000 		.4byte	.Ldebug_line0
+ 2196 0025 02       		.uleb128 0x2
+ 2197 0026 01       		.byte	0x1
+ 2198 0027 06       		.byte	0x6
+ 2199 0028 54020000 		.4byte	.LASF0
+ 2200 002c 02       		.uleb128 0x2
+ 2201 002d 01       		.byte	0x1
+ 2202 002e 08       		.byte	0x8
+ 2203 002f 5F040000 		.4byte	.LASF1
+ 2204 0033 02       		.uleb128 0x2
+ 2205 0034 02       		.byte	0x2
+ 2206 0035 05       		.byte	0x5
+ 2207 0036 B0010000 		.4byte	.LASF2
+ 2208 003a 02       		.uleb128 0x2
+ 2209 003b 02       		.byte	0x2
+ 2210 003c 07       		.byte	0x7
+ 2211 003d 1E010000 		.4byte	.LASF3
+ 2212 0041 02       		.uleb128 0x2
+ 2213 0042 04       		.byte	0x4
+ 2214 0043 05       		.byte	0x5
+ 2215 0044 6A000000 		.4byte	.LASF4
+ 2216 0048 02       		.uleb128 0x2
+ 2217 0049 04       		.byte	0x4
+ 2218 004a 07       		.byte	0x7
+ 2219 004b F9000000 		.4byte	.LASF5
+ 2220 004f 02       		.uleb128 0x2
+ 2221 0050 08       		.byte	0x8
+ 2222 0051 05       		.byte	0x5
+ 2223 0052 00000000 		.4byte	.LASF6
+ 2224 0056 02       		.uleb128 0x2
+ 2225 0057 08       		.byte	0x8
+ 2226 0058 07       		.byte	0x7
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 43
+
+
+ 2227 0059 2C020000 		.4byte	.LASF7
+ 2228 005d 03       		.uleb128 0x3
+ 2229 005e 04       		.byte	0x4
+ 2230 005f 05       		.byte	0x5
+ 2231 0060 696E7400 		.ascii	"int\000"
+ 2232 0064 02       		.uleb128 0x2
+ 2233 0065 04       		.byte	0x4
+ 2234 0066 07       		.byte	0x7
+ 2235 0067 E7010000 		.4byte	.LASF8
+ 2236 006b 04       		.uleb128 0x4
+ 2237 006c 94000000 		.4byte	.LASF59
+ 2238 0070 10       		.byte	0x10
+ 2239 0071 FC01     		.2byte	0x1fc
+ 2240 0073 2C000000 		.4byte	0x2c
+ 2241 0077 02       		.uleb128 0x2
+ 2242 0078 04       		.byte	0x4
+ 2243 0079 04       		.byte	0x4
+ 2244 007a C6000000 		.4byte	.LASF9
+ 2245 007e 02       		.uleb128 0x2
+ 2246 007f 08       		.byte	0x8
+ 2247 0080 04       		.byte	0x4
+ 2248 0081 97010000 		.4byte	.LASF10
+ 2249 0085 02       		.uleb128 0x2
+ 2250 0086 01       		.byte	0x1
+ 2251 0087 08       		.byte	0x8
+ 2252 0088 27030000 		.4byte	.LASF11
+ 2253 008c 02       		.uleb128 0x2
+ 2254 008d 08       		.byte	0x8
+ 2255 008e 04       		.byte	0x4
+ 2256 008f F1030000 		.4byte	.LASF12
+ 2257 0093 02       		.uleb128 0x2
+ 2258 0094 04       		.byte	0x4
+ 2259 0095 07       		.byte	0x7
+ 2260 0096 F6020000 		.4byte	.LASF13
+ 2261 009a 05       		.uleb128 0x5
+ 2262 009b C3030000 		.4byte	.LASF14
+ 2263 009f 01       		.byte	0x1
+ 2264 00a0 26       		.byte	0x26
+ 2265 00a1 00000000 		.4byte	.LFB32
+ 2266 00a5 48000000 		.4byte	.LFE32-.LFB32
+ 2267 00a9 01       		.uleb128 0x1
+ 2268 00aa 9C       		.byte	0x9c
+ 2269 00ab 29010000 		.4byte	0x129
+ 2270 00af 06       		.uleb128 0x6
+ 2271 00b0 12000000 		.4byte	.LVL0
+ 2272 00b4 0E050000 		.4byte	0x50e
+ 2273 00b8 06       		.uleb128 0x6
+ 2274 00b9 16000000 		.4byte	.LVL1
+ 2275 00bd 19050000 		.4byte	0x519
+ 2276 00c1 07       		.uleb128 0x7
+ 2277 00c2 1C000000 		.4byte	.LVL2
+ 2278 00c6 24050000 		.4byte	0x524
+ 2279 00ca D4000000 		.4byte	0xd4
+ 2280 00ce 08       		.uleb128 0x8
+ 2281 00cf 01       		.uleb128 0x1
+ 2282 00d0 50       		.byte	0x50
+ 2283 00d1 01       		.uleb128 0x1
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 44
+
+
+ 2284 00d2 31       		.byte	0x31
+ 2285 00d3 00       		.byte	0
+ 2286 00d4 07       		.uleb128 0x7
+ 2287 00d5 22000000 		.4byte	.LVL3
+ 2288 00d9 2F050000 		.4byte	0x52f
+ 2289 00dd E7000000 		.4byte	0xe7
+ 2290 00e1 08       		.uleb128 0x8
+ 2291 00e2 01       		.uleb128 0x1
+ 2292 00e3 50       		.byte	0x50
+ 2293 00e4 01       		.uleb128 0x1
+ 2294 00e5 30       		.byte	0x30
+ 2295 00e6 00       		.byte	0
+ 2296 00e7 07       		.uleb128 0x7
+ 2297 00e8 2A000000 		.4byte	.LVL4
+ 2298 00ec 3A050000 		.4byte	0x53a
+ 2299 00f0 FF000000 		.4byte	0xff
+ 2300 00f4 08       		.uleb128 0x8
+ 2301 00f5 01       		.uleb128 0x1
+ 2302 00f6 50       		.byte	0x50
+ 2303 00f7 01       		.uleb128 0x1
+ 2304 00f8 31       		.byte	0x31
+ 2305 00f9 08       		.uleb128 0x8
+ 2306 00fa 01       		.uleb128 0x1
+ 2307 00fb 51       		.byte	0x51
+ 2308 00fc 01       		.uleb128 0x1
+ 2309 00fd 39       		.byte	0x39
+ 2310 00fe 00       		.byte	0
+ 2311 00ff 07       		.uleb128 0x7
+ 2312 0100 30000000 		.4byte	.LVL5
+ 2313 0104 45050000 		.4byte	0x545
+ 2314 0108 16010000 		.4byte	0x116
+ 2315 010c 08       		.uleb128 0x8
+ 2316 010d 01       		.uleb128 0x1
+ 2317 010e 50       		.byte	0x50
+ 2318 010f 05       		.uleb128 0x5
+ 2319 0110 03       		.byte	0x3
+ 2320 0111 00000000 		.4byte	.LC2
+ 2321 0115 00       		.byte	0
+ 2322 0116 06       		.uleb128 0x6
+ 2323 0117 34000000 		.4byte	.LVL6
+ 2324 011b 50050000 		.4byte	0x550
+ 2325 011f 06       		.uleb128 0x6
+ 2326 0120 38000000 		.4byte	.LVL7
+ 2327 0124 5B050000 		.4byte	0x55b
+ 2328 0128 00       		.byte	0
+ 2329 0129 05       		.uleb128 0x5
+ 2330 012a FD030000 		.4byte	.LASF15
+ 2331 012e 01       		.byte	0x1
+ 2332 012f 39       		.byte	0x39
+ 2333 0130 00000000 		.4byte	.LFB33
+ 2334 0134 A0000000 		.4byte	.LFE33-.LFB33
+ 2335 0138 01       		.uleb128 0x1
+ 2336 0139 9C       		.byte	0x9c
+ 2337 013a 48010000 		.4byte	0x148
+ 2338 013e 06       		.uleb128 0x6
+ 2339 013f 7E000000 		.4byte	.LVL8
+ 2340 0143 66050000 		.4byte	0x566
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 45
+
+
+ 2341 0147 00       		.byte	0
+ 2342 0148 05       		.uleb128 0x5
+ 2343 0149 1B020000 		.4byte	.LASF16
+ 2344 014d 01       		.byte	0x1
+ 2345 014e 60       		.byte	0x60
+ 2346 014f 00000000 		.4byte	.LFB34
+ 2347 0153 40000000 		.4byte	.LFE34-.LFB34
+ 2348 0157 01       		.uleb128 0x1
+ 2349 0158 9C       		.byte	0x9c
+ 2350 0159 C5010000 		.4byte	0x1c5
+ 2351 015d 06       		.uleb128 0x6
+ 2352 015e 0C000000 		.4byte	.LVL9
+ 2353 0162 71050000 		.4byte	0x571
+ 2354 0166 07       		.uleb128 0x7
+ 2355 0167 18000000 		.4byte	.LVL10
+ 2356 016b 24050000 		.4byte	0x524
+ 2357 016f 7A010000 		.4byte	0x17a
+ 2358 0173 08       		.uleb128 0x8
+ 2359 0174 01       		.uleb128 0x1
+ 2360 0175 50       		.byte	0x50
+ 2361 0176 02       		.uleb128 0x2
+ 2362 0177 74       		.byte	0x74
+ 2363 0178 00       		.sleb128 0
+ 2364 0179 00       		.byte	0
+ 2365 017a 07       		.uleb128 0x7
+ 2366 017b 1E000000 		.4byte	.LVL11
+ 2367 017f 2F050000 		.4byte	0x52f
+ 2368 0183 8D010000 		.4byte	0x18d
+ 2369 0187 08       		.uleb128 0x8
+ 2370 0188 01       		.uleb128 0x1
+ 2371 0189 50       		.byte	0x50
+ 2372 018a 01       		.uleb128 0x1
+ 2373 018b 31       		.byte	0x31
+ 2374 018c 00       		.byte	0
+ 2375 018d 07       		.uleb128 0x7
+ 2376 018e 24000000 		.4byte	.LVL12
+ 2377 0192 7C050000 		.4byte	0x57c
+ 2378 0196 A0010000 		.4byte	0x1a0
+ 2379 019a 08       		.uleb128 0x8
+ 2380 019b 01       		.uleb128 0x1
+ 2381 019c 50       		.byte	0x50
+ 2382 019d 01       		.uleb128 0x1
+ 2383 019e 31       		.byte	0x31
+ 2384 019f 00       		.byte	0
+ 2385 01a0 06       		.uleb128 0x6
+ 2386 01a1 28000000 		.4byte	.LVL13
+ 2387 01a5 87050000 		.4byte	0x587
+ 2388 01a9 06       		.uleb128 0x6
+ 2389 01aa 2C000000 		.4byte	.LVL14
+ 2390 01ae 92050000 		.4byte	0x592
+ 2391 01b2 06       		.uleb128 0x6
+ 2392 01b3 30000000 		.4byte	.LVL15
+ 2393 01b7 9D050000 		.4byte	0x59d
+ 2394 01bb 06       		.uleb128 0x6
+ 2395 01bc 34000000 		.4byte	.LVL16
+ 2396 01c0 A8050000 		.4byte	0x5a8
+ 2397 01c4 00       		.byte	0
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 46
+
+
+ 2398 01c5 05       		.uleb128 0x5
+ 2399 01c6 D1010000 		.4byte	.LASF17
+ 2400 01ca 01       		.byte	0x1
+ 2401 01cb 71       		.byte	0x71
+ 2402 01cc 00000000 		.4byte	.LFB35
+ 2403 01d0 1C000000 		.4byte	.LFE35-.LFB35
+ 2404 01d4 01       		.uleb128 0x1
+ 2405 01d5 9C       		.byte	0x9c
+ 2406 01d6 FD010000 		.4byte	0x1fd
+ 2407 01da 07       		.uleb128 0x7
+ 2408 01db 0E000000 		.4byte	.LVL17
+ 2409 01df B3050000 		.4byte	0x5b3
+ 2410 01e3 ED010000 		.4byte	0x1ed
+ 2411 01e7 08       		.uleb128 0x8
+ 2412 01e8 01       		.uleb128 0x1
+ 2413 01e9 50       		.byte	0x50
+ 2414 01ea 01       		.uleb128 0x1
+ 2415 01eb 31       		.byte	0x31
+ 2416 01ec 00       		.byte	0
+ 2417 01ed 09       		.uleb128 0x9
+ 2418 01ee 14000000 		.4byte	.LVL18
+ 2419 01f2 BE050000 		.4byte	0x5be
+ 2420 01f6 08       		.uleb128 0x8
+ 2421 01f7 01       		.uleb128 0x1
+ 2422 01f8 50       		.byte	0x50
+ 2423 01f9 01       		.uleb128 0x1
+ 2424 01fa 30       		.byte	0x30
+ 2425 01fb 00       		.byte	0
+ 2426 01fc 00       		.byte	0
+ 2427 01fd 05       		.uleb128 0x5
+ 2428 01fe DC010000 		.4byte	.LASF18
+ 2429 0202 01       		.byte	0x1
+ 2430 0203 77       		.byte	0x77
+ 2431 0204 00000000 		.4byte	.LFB36
+ 2432 0208 1C000000 		.4byte	.LFE36-.LFB36
+ 2433 020c 01       		.uleb128 0x1
+ 2434 020d 9C       		.byte	0x9c
+ 2435 020e 35020000 		.4byte	0x235
+ 2436 0212 07       		.uleb128 0x7
+ 2437 0213 0E000000 		.4byte	.LVL19
+ 2438 0217 B3050000 		.4byte	0x5b3
+ 2439 021b 25020000 		.4byte	0x225
+ 2440 021f 08       		.uleb128 0x8
+ 2441 0220 01       		.uleb128 0x1
+ 2442 0221 50       		.byte	0x50
+ 2443 0222 01       		.uleb128 0x1
+ 2444 0223 30       		.byte	0x30
+ 2445 0224 00       		.byte	0
+ 2446 0225 09       		.uleb128 0x9
+ 2447 0226 14000000 		.4byte	.LVL20
+ 2448 022a BE050000 		.4byte	0x5be
+ 2449 022e 08       		.uleb128 0x8
+ 2450 022f 01       		.uleb128 0x1
+ 2451 0230 50       		.byte	0x50
+ 2452 0231 01       		.uleb128 0x1
+ 2453 0232 31       		.byte	0x31
+ 2454 0233 00       		.byte	0
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 47
+
+
+ 2455 0234 00       		.byte	0
+ 2456 0235 0A       		.uleb128 0xa
+ 2457 0236 CC010000 		.4byte	.LASF60
+ 2458 023a 01       		.byte	0x1
+ 2459 023b 80       		.byte	0x80
+ 2460 023c 5D000000 		.4byte	0x5d
+ 2461 0240 00000000 		.4byte	.LFB37
+ 2462 0244 B8000000 		.4byte	.LFE37-.LFB37
+ 2463 0248 01       		.uleb128 0x1
+ 2464 0249 9C       		.byte	0x9c
+ 2465 024a FC030000 		.4byte	0x3fc
+ 2466 024e 06       		.uleb128 0x6
+ 2467 024f 08000000 		.4byte	.LVL21
+ 2468 0253 C9050000 		.4byte	0x5c9
+ 2469 0257 07       		.uleb128 0x7
+ 2470 0258 0E000000 		.4byte	.LVL22
+ 2471 025c 7C050000 		.4byte	0x57c
+ 2472 0260 6A020000 		.4byte	0x26a
+ 2473 0264 08       		.uleb128 0x8
+ 2474 0265 01       		.uleb128 0x1
+ 2475 0266 50       		.byte	0x50
+ 2476 0267 01       		.uleb128 0x1
+ 2477 0268 31       		.byte	0x31
+ 2478 0269 00       		.byte	0
+ 2479 026a 06       		.uleb128 0x6
+ 2480 026b 12000000 		.4byte	.LVL23
+ 2481 026f D4050000 		.4byte	0x5d4
+ 2482 0273 07       		.uleb128 0x7
+ 2483 0274 18000000 		.4byte	.LVL24
+ 2484 0278 DF050000 		.4byte	0x5df
+ 2485 027c 8A020000 		.4byte	0x28a
+ 2486 0280 08       		.uleb128 0x8
+ 2487 0281 01       		.uleb128 0x1
+ 2488 0282 50       		.byte	0x50
+ 2489 0283 05       		.uleb128 0x5
+ 2490 0284 03       		.byte	0x3
+ 2491 0285 00000000 		.4byte	ISR_GenerateSample
+ 2492 0289 00       		.byte	0
+ 2493 028a 07       		.uleb128 0x7
+ 2494 028b 1E000000 		.4byte	.LVL25
+ 2495 028f EA050000 		.4byte	0x5ea
+ 2496 0293 A1020000 		.4byte	0x2a1
+ 2497 0297 08       		.uleb128 0x8
+ 2498 0298 01       		.uleb128 0x1
+ 2499 0299 50       		.byte	0x50
+ 2500 029a 05       		.uleb128 0x5
+ 2501 029b 03       		.byte	0x3
+ 2502 029c 00000000 		.4byte	ISR_StopGenerate
+ 2503 02a0 00       		.byte	0
+ 2504 02a1 07       		.uleb128 0x7
+ 2505 02a2 26000000 		.4byte	.LVL26
+ 2506 02a6 F5050000 		.4byte	0x5f5
+ 2507 02aa B5020000 		.4byte	0x2b5
+ 2508 02ae 08       		.uleb128 0x8
+ 2509 02af 01       		.uleb128 0x1
+ 2510 02b0 50       		.byte	0x50
+ 2511 02b1 02       		.uleb128 0x2
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 48
+
+
+ 2512 02b2 74       		.byte	0x74
+ 2513 02b3 00       		.sleb128 0
+ 2514 02b4 00       		.byte	0
+ 2515 02b5 07       		.uleb128 0x7
+ 2516 02b6 2C000000 		.4byte	.LVL27
+ 2517 02ba 00060000 		.4byte	0x600
+ 2518 02be C9020000 		.4byte	0x2c9
+ 2519 02c2 08       		.uleb128 0x8
+ 2520 02c3 01       		.uleb128 0x1
+ 2521 02c4 50       		.byte	0x50
+ 2522 02c5 02       		.uleb128 0x2
+ 2523 02c6 74       		.byte	0x74
+ 2524 02c7 00       		.sleb128 0
+ 2525 02c8 00       		.byte	0
+ 2526 02c9 07       		.uleb128 0x7
+ 2527 02ca 32000000 		.4byte	.LVL28
+ 2528 02ce 0B060000 		.4byte	0x60b
+ 2529 02d2 E0020000 		.4byte	0x2e0
+ 2530 02d6 08       		.uleb128 0x8
+ 2531 02d7 01       		.uleb128 0x1
+ 2532 02d8 50       		.byte	0x50
+ 2533 02d9 05       		.uleb128 0x5
+ 2534 02da 03       		.byte	0x3
+ 2535 02db 00000000 		.4byte	ISR_Mode_1
+ 2536 02df 00       		.byte	0
+ 2537 02e0 07       		.uleb128 0x7
+ 2538 02e1 38000000 		.4byte	.LVL29
+ 2539 02e5 16060000 		.4byte	0x616
+ 2540 02e9 F7020000 		.4byte	0x2f7
+ 2541 02ed 08       		.uleb128 0x8
+ 2542 02ee 01       		.uleb128 0x1
+ 2543 02ef 50       		.byte	0x50
+ 2544 02f0 05       		.uleb128 0x5
+ 2545 02f1 03       		.byte	0x3
+ 2546 02f2 00000000 		.4byte	ISR_Mode_2
+ 2547 02f6 00       		.byte	0
+ 2548 02f7 07       		.uleb128 0x7
+ 2549 02f8 46000000 		.4byte	.LVL30
+ 2550 02fc B3050000 		.4byte	0x5b3
+ 2551 0300 0A030000 		.4byte	0x30a
+ 2552 0304 08       		.uleb128 0x8
+ 2553 0305 01       		.uleb128 0x1
+ 2554 0306 50       		.byte	0x50
+ 2555 0307 01       		.uleb128 0x1
+ 2556 0308 31       		.byte	0x31
+ 2557 0309 00       		.byte	0
+ 2558 030a 07       		.uleb128 0x7
+ 2559 030b 4C000000 		.4byte	.LVL31
+ 2560 030f BE050000 		.4byte	0x5be
+ 2561 0313 1D030000 		.4byte	0x31d
+ 2562 0317 08       		.uleb128 0x8
+ 2563 0318 01       		.uleb128 0x1
+ 2564 0319 50       		.byte	0x50
+ 2565 031a 01       		.uleb128 0x1
+ 2566 031b 30       		.byte	0x30
+ 2567 031c 00       		.byte	0
+ 2568 031d 07       		.uleb128 0x7
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 49
+
+
+ 2569 031e 54000000 		.4byte	.LVL32
+ 2570 0322 3A050000 		.4byte	0x53a
+ 2571 0326 35030000 		.4byte	0x335
+ 2572 032a 08       		.uleb128 0x8
+ 2573 032b 01       		.uleb128 0x1
+ 2574 032c 50       		.byte	0x50
+ 2575 032d 01       		.uleb128 0x1
+ 2576 032e 30       		.byte	0x30
+ 2577 032f 08       		.uleb128 0x8
+ 2578 0330 01       		.uleb128 0x1
+ 2579 0331 51       		.byte	0x51
+ 2580 0332 01       		.uleb128 0x1
+ 2581 0333 30       		.byte	0x30
+ 2582 0334 00       		.byte	0
+ 2583 0335 07       		.uleb128 0x7
+ 2584 0336 5A000000 		.4byte	.LVL33
+ 2585 033a 45050000 		.4byte	0x545
+ 2586 033e 4C030000 		.4byte	0x34c
+ 2587 0342 08       		.uleb128 0x8
+ 2588 0343 01       		.uleb128 0x1
+ 2589 0344 50       		.byte	0x50
+ 2590 0345 05       		.uleb128 0x5
+ 2591 0346 03       		.byte	0x3
+ 2592 0347 08000000 		.4byte	.LC21
+ 2593 034b 00       		.byte	0
+ 2594 034c 07       		.uleb128 0x7
+ 2595 034d 62000000 		.4byte	.LVL34
+ 2596 0351 3A050000 		.4byte	0x53a
+ 2597 0355 64030000 		.4byte	0x364
+ 2598 0359 08       		.uleb128 0x8
+ 2599 035a 01       		.uleb128 0x1
+ 2600 035b 50       		.byte	0x50
+ 2601 035c 01       		.uleb128 0x1
+ 2602 035d 31       		.byte	0x31
+ 2603 035e 08       		.uleb128 0x8
+ 2604 035f 01       		.uleb128 0x1
+ 2605 0360 51       		.byte	0x51
+ 2606 0361 01       		.uleb128 0x1
+ 2607 0362 30       		.byte	0x30
+ 2608 0363 00       		.byte	0
+ 2609 0364 07       		.uleb128 0x7
+ 2610 0365 68000000 		.4byte	.LVL35
+ 2611 0369 45050000 		.4byte	0x545
+ 2612 036d 7B030000 		.4byte	0x37b
+ 2613 0371 08       		.uleb128 0x8
+ 2614 0372 01       		.uleb128 0x1
+ 2615 0373 50       		.byte	0x50
+ 2616 0374 05       		.uleb128 0x5
+ 2617 0375 03       		.byte	0x3
+ 2618 0376 1C000000 		.4byte	.LC23
+ 2619 037a 00       		.byte	0
+ 2620 037b 07       		.uleb128 0x7
+ 2621 037c 70000000 		.4byte	.LVL36
+ 2622 0380 B3050000 		.4byte	0x5b3
+ 2623 0384 8E030000 		.4byte	0x38e
+ 2624 0388 08       		.uleb128 0x8
+ 2625 0389 01       		.uleb128 0x1
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 50
+
+
+ 2626 038a 50       		.byte	0x50
+ 2627 038b 01       		.uleb128 0x1
+ 2628 038c 30       		.byte	0x30
+ 2629 038d 00       		.byte	0
+ 2630 038e 07       		.uleb128 0x7
+ 2631 038f 76000000 		.4byte	.LVL37
+ 2632 0393 BE050000 		.4byte	0x5be
+ 2633 0397 A1030000 		.4byte	0x3a1
+ 2634 039b 08       		.uleb128 0x8
+ 2635 039c 01       		.uleb128 0x1
+ 2636 039d 50       		.byte	0x50
+ 2637 039e 01       		.uleb128 0x1
+ 2638 039f 31       		.byte	0x31
+ 2639 03a0 00       		.byte	0
+ 2640 03a1 07       		.uleb128 0x7
+ 2641 03a2 7E000000 		.4byte	.LVL38
+ 2642 03a6 3A050000 		.4byte	0x53a
+ 2643 03aa B9030000 		.4byte	0x3b9
+ 2644 03ae 08       		.uleb128 0x8
+ 2645 03af 01       		.uleb128 0x1
+ 2646 03b0 50       		.byte	0x50
+ 2647 03b1 01       		.uleb128 0x1
+ 2648 03b2 30       		.byte	0x30
+ 2649 03b3 08       		.uleb128 0x8
+ 2650 03b4 01       		.uleb128 0x1
+ 2651 03b5 51       		.byte	0x51
+ 2652 03b6 01       		.uleb128 0x1
+ 2653 03b7 30       		.byte	0x30
+ 2654 03b8 00       		.byte	0
+ 2655 03b9 07       		.uleb128 0x7
+ 2656 03ba 84000000 		.4byte	.LVL39
+ 2657 03be 45050000 		.4byte	0x545
+ 2658 03c2 D0030000 		.4byte	0x3d0
+ 2659 03c6 08       		.uleb128 0x8
+ 2660 03c7 01       		.uleb128 0x1
+ 2661 03c8 50       		.byte	0x50
+ 2662 03c9 05       		.uleb128 0x5
+ 2663 03ca 03       		.byte	0x3
+ 2664 03cb 08000000 		.4byte	.LC21
+ 2665 03cf 00       		.byte	0
+ 2666 03d0 07       		.uleb128 0x7
+ 2667 03d1 8C000000 		.4byte	.LVL40
+ 2668 03d5 3A050000 		.4byte	0x53a
+ 2669 03d9 E8030000 		.4byte	0x3e8
+ 2670 03dd 08       		.uleb128 0x8
+ 2671 03de 01       		.uleb128 0x1
+ 2672 03df 50       		.byte	0x50
+ 2673 03e0 01       		.uleb128 0x1
+ 2674 03e1 31       		.byte	0x31
+ 2675 03e2 08       		.uleb128 0x8
+ 2676 03e3 01       		.uleb128 0x1
+ 2677 03e4 51       		.byte	0x51
+ 2678 03e5 01       		.uleb128 0x1
+ 2679 03e6 30       		.byte	0x30
+ 2680 03e7 00       		.byte	0
+ 2681 03e8 09       		.uleb128 0x9
+ 2682 03e9 92000000 		.4byte	.LVL41
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 51
+
+
+ 2683 03ed 45050000 		.4byte	0x545
+ 2684 03f1 08       		.uleb128 0x8
+ 2685 03f2 01       		.uleb128 0x1
+ 2686 03f3 50       		.byte	0x50
+ 2687 03f4 05       		.uleb128 0x5
+ 2688 03f5 03       		.byte	0x3
+ 2689 03f6 24000000 		.4byte	.LC25
+ 2690 03fa 00       		.byte	0
+ 2691 03fb 00       		.byte	0
+ 2692 03fc 0B       		.uleb128 0xb
+ 2693 03fd 60000000 		.4byte	.LASF19
+ 2694 0401 01       		.byte	0x1
+ 2695 0402 0F       		.byte	0xf
+ 2696 0403 5D000000 		.4byte	0x5d
+ 2697 0407 05       		.uleb128 0x5
+ 2698 0408 03       		.byte	0x3
+ 2699 0409 00000000 		.4byte	InProgres
+ 2700 040d 0B       		.uleb128 0xb
+ 2701 040e DD000000 		.4byte	.LASF20
+ 2702 0412 01       		.byte	0x1
+ 2703 0413 10       		.byte	0x10
+ 2704 0414 5D000000 		.4byte	0x5d
+ 2705 0418 05       		.uleb128 0x5
+ 2706 0419 03       		.byte	0x3
+ 2707 041a 00000000 		.4byte	Mode
+ 2708 041e 0B       		.uleb128 0xb
+ 2709 041f EE020000 		.4byte	.LASF21
+ 2710 0423 01       		.byte	0x1
+ 2711 0424 12       		.byte	0x12
+ 2712 0425 5D000000 		.4byte	0x5d
+ 2713 0429 05       		.uleb128 0x5
+ 2714 042a 03       		.byte	0x3
+ 2715 042b 00000000 		.4byte	MainIdx
+ 2716 042f 0B       		.uleb128 0xb
+ 2717 0430 6A030000 		.4byte	.LASF22
+ 2718 0434 01       		.byte	0x1
+ 2719 0435 13       		.byte	0x13
+ 2720 0436 5D000000 		.4byte	0x5d
+ 2721 043a 05       		.uleb128 0x5
+ 2722 043b 03       		.byte	0x3
+ 2723 043c 00000000 		.4byte	MainIdxExpFadingMod1
+ 2724 0440 0B       		.uleb128 0xb
+ 2725 0441 40030000 		.4byte	.LASF23
+ 2726 0445 01       		.byte	0x1
+ 2727 0446 14       		.byte	0x14
+ 2728 0447 5D000000 		.4byte	0x5d
+ 2729 044b 05       		.uleb128 0x5
+ 2730 044c 03       		.byte	0x3
+ 2731 044d 00000000 		.4byte	MainIdxExpFadingMod2
+ 2732 0451 0B       		.uleb128 0xb
+ 2733 0452 FF020000 		.4byte	.LASF24
+ 2734 0456 01       		.byte	0x1
+ 2735 0457 15       		.byte	0x15
+ 2736 0458 5D000000 		.4byte	0x5d
+ 2737 045c 05       		.uleb128 0x5
+ 2738 045d 03       		.byte	0x3
+ 2739 045e 00000000 		.4byte	ProcessedSample
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 52
+
+
+ 2740 0462 0B       		.uleb128 0xb
+ 2741 0463 55030000 		.4byte	.LASF25
+ 2742 0467 01       		.byte	0x1
+ 2743 0468 17       		.byte	0x17
+ 2744 0469 5D000000 		.4byte	0x5d
+ 2745 046d 05       		.uleb128 0x5
+ 2746 046e 03       		.byte	0x3
+ 2747 046f 00000000 		.4byte	NumOfSamplesInPeriod
+ 2748 0473 0B       		.uleb128 0xb
+ 2749 0474 7F030000 		.4byte	.LASF26
+ 2750 0478 01       		.byte	0x1
+ 2751 0479 18       		.byte	0x18
+ 2752 047a 5D000000 		.4byte	0x5d
+ 2753 047e 05       		.uleb128 0x5
+ 2754 047f 03       		.byte	0x3
+ 2755 0480 00000000 		.4byte	NumOfSamplesInPeriodExpFadingMod1
+ 2756 0484 0B       		.uleb128 0xb
+ 2757 0485 A1030000 		.4byte	.LASF27
+ 2758 0489 01       		.byte	0x1
+ 2759 048a 19       		.byte	0x19
+ 2760 048b 5D000000 		.4byte	0x5d
+ 2761 048f 05       		.uleb128 0x5
+ 2762 0490 03       		.byte	0x3
+ 2763 0491 00000000 		.4byte	NumOfSamplesInPeriodExpFadingMod2
+ 2764 0495 0C       		.uleb128 0xc
+ 2765 0496 A5040000 		.4byte	0x4a5
+ 2766 049a A5040000 		.4byte	0x4a5
+ 2767 049e 0D       		.uleb128 0xd
+ 2768 049f 93000000 		.4byte	0x93
+ 2769 04a3 13       		.byte	0x13
+ 2770 04a4 00       		.byte	0
+ 2771 04a5 0E       		.uleb128 0xe
+ 2772 04a6 6B000000 		.4byte	0x6b
+ 2773 04aa 0B       		.uleb128 0xb
+ 2774 04ab 73000000 		.4byte	.LASF28
+ 2775 04af 01       		.byte	0x1
+ 2776 04b0 1A       		.byte	0x1a
+ 2777 04b1 BB040000 		.4byte	0x4bb
+ 2778 04b5 05       		.uleb128 0x5
+ 2779 04b6 03       		.byte	0x3
+ 2780 04b7 00000000 		.4byte	Samples
+ 2781 04bb 0E       		.uleb128 0xe
+ 2782 04bc 95040000 		.4byte	0x495
+ 2783 04c0 0C       		.uleb128 0xc
+ 2784 04c1 A5040000 		.4byte	0x4a5
+ 2785 04c5 D1040000 		.4byte	0x4d1
+ 2786 04c9 0F       		.uleb128 0xf
+ 2787 04ca 93000000 		.4byte	0x93
+ 2788 04ce 8F01     		.2byte	0x18f
+ 2789 04d0 00       		.byte	0
+ 2790 04d1 0B       		.uleb128 0xb
+ 2791 04d2 5C010000 		.4byte	.LASF29
+ 2792 04d6 01       		.byte	0x1
+ 2793 04d7 1D       		.byte	0x1d
+ 2794 04d8 E2040000 		.4byte	0x4e2
+ 2795 04dc 05       		.uleb128 0x5
+ 2796 04dd 03       		.byte	0x3
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 53
+
+
+ 2797 04de 00000000 		.4byte	SamplesExpFadingMod1
+ 2798 04e2 0E       		.uleb128 0xe
+ 2799 04e3 C0040000 		.4byte	0x4c0
+ 2800 04e7 0C       		.uleb128 0xc
+ 2801 04e8 A5040000 		.4byte	0x4a5
+ 2802 04ec F8040000 		.4byte	0x4f8
+ 2803 04f0 0F       		.uleb128 0xf
+ 2804 04f1 93000000 		.4byte	0x93
+ 2805 04f5 AF04     		.2byte	0x4af
+ 2806 04f7 00       		.byte	0
+ 2807 04f8 0B       		.uleb128 0xb
+ 2808 04f9 71010000 		.4byte	.LASF30
+ 2809 04fd 01       		.byte	0x1
+ 2810 04fe 20       		.byte	0x20
+ 2811 04ff 09050000 		.4byte	0x509
+ 2812 0503 05       		.uleb128 0x5
+ 2813 0504 03       		.byte	0x3
+ 2814 0505 00000000 		.4byte	SamplesExpFadingMod2
+ 2815 0509 0E       		.uleb128 0xe
+ 2816 050a E7040000 		.4byte	0x4e7
+ 2817 050e 10       		.uleb128 0x10
+ 2818 050f BA010000 		.4byte	.LASF31
+ 2819 0513 BA010000 		.4byte	.LASF31
+ 2820 0517 02       		.byte	0x2
+ 2821 0518 25       		.byte	0x25
+ 2822 0519 10       		.uleb128 0x10
+ 2823 051a F4010000 		.4byte	.LASF32
+ 2824 051e F4010000 		.4byte	.LASF32
+ 2825 0522 03       		.byte	0x3
+ 2826 0523 25       		.byte	0x25
+ 2827 0524 10       		.uleb128 0x10
+ 2828 0525 4A000000 		.4byte	.LASF33
+ 2829 0529 4A000000 		.4byte	.LASF33
+ 2830 052d 04       		.byte	0x4
+ 2831 052e 33       		.byte	0x33
+ 2832 052f 10       		.uleb128 0x10
+ 2833 0530 6D040000 		.4byte	.LASF34
+ 2834 0534 6D040000 		.4byte	.LASF34
+ 2835 0538 05       		.byte	0x5
+ 2836 0539 33       		.byte	0x33
+ 2837 053a 10       		.uleb128 0x10
+ 2838 053b 2C030000 		.4byte	.LASF35
+ 2839 053f 2C030000 		.4byte	.LASF35
+ 2840 0543 06       		.byte	0x6
+ 2841 0544 3D       		.byte	0x3d
+ 2842 0545 10       		.uleb128 0x10
+ 2843 0546 E2000000 		.4byte	.LASF36
+ 2844 054a E2000000 		.4byte	.LASF36
+ 2845 054e 06       		.byte	0x6
+ 2846 054f 3C       		.byte	0x3c
+ 2847 0550 10       		.uleb128 0x10
+ 2848 0551 43020000 		.4byte	.LASF37
+ 2849 0555 43020000 		.4byte	.LASF37
+ 2850 0559 07       		.byte	0x7
+ 2851 055a 5A       		.byte	0x5a
+ 2852 055b 10       		.uleb128 0x10
+ 2853 055c B1000000 		.4byte	.LASF38
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 54
+
+
+ 2854 0560 B1000000 		.4byte	.LASF38
+ 2855 0564 08       		.byte	0x8
+ 2856 0565 5A       		.byte	0x5a
+ 2857 0566 10       		.uleb128 0x10
+ 2858 0567 3A000000 		.4byte	.LASF39
+ 2859 056b 3A000000 		.4byte	.LASF39
+ 2860 056f 09       		.byte	0x9
+ 2861 0570 54       		.byte	0x54
+ 2862 0571 10       		.uleb128 0x10
+ 2863 0572 48010000 		.4byte	.LASF40
+ 2864 0576 48010000 		.4byte	.LASF40
+ 2865 057a 08       		.byte	0x8
+ 2866 057b 5B       		.byte	0x5b
+ 2867 057c 10       		.uleb128 0x10
+ 2868 057d 0E000000 		.4byte	.LASF41
+ 2869 0581 0E000000 		.4byte	.LASF41
+ 2870 0585 06       		.byte	0x6
+ 2871 0586 3A       		.byte	0x3a
+ 2872 0587 10       		.uleb128 0x10
+ 2873 0588 0B010000 		.4byte	.LASF42
+ 2874 058c 0B010000 		.4byte	.LASF42
+ 2875 0590 03       		.byte	0x3
+ 2876 0591 23       		.byte	0x23
+ 2877 0592 10       		.uleb128 0x10
+ 2878 0593 D3030000 		.4byte	.LASF43
+ 2879 0597 D3030000 		.4byte	.LASF43
+ 2880 059b 02       		.byte	0x2
+ 2881 059c 23       		.byte	0x23
+ 2882 059d 10       		.uleb128 0x10
+ 2883 059e 7B000000 		.4byte	.LASF44
+ 2884 05a2 7B000000 		.4byte	.LASF44
+ 2885 05a6 03       		.byte	0x3
+ 2886 05a7 28       		.byte	0x28
+ 2887 05a8 10       		.uleb128 0x10
+ 2888 05a9 31010000 		.4byte	.LASF45
+ 2889 05ad 31010000 		.4byte	.LASF45
+ 2890 05b1 02       		.byte	0x2
+ 2891 05b2 28       		.byte	0x28
+ 2892 05b3 10       		.uleb128 0x10
+ 2893 05b4 0F030000 		.4byte	.LASF46
+ 2894 05b8 0F030000 		.4byte	.LASF46
+ 2895 05bc 0A       		.byte	0xa
+ 2896 05bd 33       		.byte	0x33
+ 2897 05be 10       		.uleb128 0x10
+ 2898 05bf 86010000 		.4byte	.LASF47
+ 2899 05c3 86010000 		.4byte	.LASF47
+ 2900 05c7 0B       		.byte	0xb
+ 2901 05c8 33       		.byte	0x33
+ 2902 05c9 10       		.uleb128 0x10
+ 2903 05ca CC000000 		.4byte	.LASF48
+ 2904 05ce CC000000 		.4byte	.LASF48
+ 2905 05d2 06       		.byte	0x6
+ 2906 05d3 38       		.byte	0x38
+ 2907 05d4 10       		.uleb128 0x10
+ 2908 05d5 E4030000 		.4byte	.LASF49
+ 2909 05d9 E4030000 		.4byte	.LASF49
+ 2910 05dd 09       		.byte	0x9
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 55
+
+
+ 2911 05de 52       		.byte	0x52
+ 2912 05df 10       		.uleb128 0x10
+ 2913 05e0 9A000000 		.4byte	.LASF50
+ 2914 05e4 9A000000 		.4byte	.LASF50
+ 2915 05e8 0C       		.byte	0xc
+ 2916 05e9 18       		.byte	0x18
+ 2917 05ea 10       		.uleb128 0x10
+ 2918 05eb 9C040000 		.4byte	.LASF51
+ 2919 05ef 9C040000 		.4byte	.LASF51
+ 2920 05f3 0D       		.byte	0xd
+ 2921 05f4 18       		.byte	0x18
+ 2922 05f5 10       		.uleb128 0x10
+ 2923 05f6 9E010000 		.4byte	.LASF52
+ 2924 05fa 9E010000 		.4byte	.LASF52
+ 2925 05fe 02       		.byte	0x2
+ 2926 05ff 18       		.byte	0x18
+ 2927 0600 10       		.uleb128 0x10
+ 2928 0601 26000000 		.4byte	.LASF53
+ 2929 0605 26000000 		.4byte	.LASF53
+ 2930 0609 03       		.byte	0x3
+ 2931 060a 18       		.byte	0x18
+ 2932 060b 10       		.uleb128 0x10
+ 2933 060c 08020000 		.4byte	.LASF54
+ 2934 0610 08020000 		.4byte	.LASF54
+ 2935 0614 0E       		.byte	0xe
+ 2936 0615 18       		.byte	0x18
+ 2937 0616 10       		.uleb128 0x10
+ 2938 0617 89040000 		.4byte	.LASF55
+ 2939 061b 89040000 		.4byte	.LASF55
+ 2940 061f 0F       		.byte	0xf
+ 2941 0620 18       		.byte	0x18
+ 2942 0621 00       		.byte	0
+ 2943              		.section	.debug_abbrev,"",%progbits
+ 2944              	.Ldebug_abbrev0:
+ 2945 0000 01       		.uleb128 0x1
+ 2946 0001 11       		.uleb128 0x11
+ 2947 0002 01       		.byte	0x1
+ 2948 0003 25       		.uleb128 0x25
+ 2949 0004 0E       		.uleb128 0xe
+ 2950 0005 13       		.uleb128 0x13
+ 2951 0006 0B       		.uleb128 0xb
+ 2952 0007 03       		.uleb128 0x3
+ 2953 0008 0E       		.uleb128 0xe
+ 2954 0009 1B       		.uleb128 0x1b
+ 2955 000a 0E       		.uleb128 0xe
+ 2956 000b 55       		.uleb128 0x55
+ 2957 000c 17       		.uleb128 0x17
+ 2958 000d 11       		.uleb128 0x11
+ 2959 000e 01       		.uleb128 0x1
+ 2960 000f 10       		.uleb128 0x10
+ 2961 0010 17       		.uleb128 0x17
+ 2962 0011 00       		.byte	0
+ 2963 0012 00       		.byte	0
+ 2964 0013 02       		.uleb128 0x2
+ 2965 0014 24       		.uleb128 0x24
+ 2966 0015 00       		.byte	0
+ 2967 0016 0B       		.uleb128 0xb
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 56
+
+
+ 2968 0017 0B       		.uleb128 0xb
+ 2969 0018 3E       		.uleb128 0x3e
+ 2970 0019 0B       		.uleb128 0xb
+ 2971 001a 03       		.uleb128 0x3
+ 2972 001b 0E       		.uleb128 0xe
+ 2973 001c 00       		.byte	0
+ 2974 001d 00       		.byte	0
+ 2975 001e 03       		.uleb128 0x3
+ 2976 001f 24       		.uleb128 0x24
+ 2977 0020 00       		.byte	0
+ 2978 0021 0B       		.uleb128 0xb
+ 2979 0022 0B       		.uleb128 0xb
+ 2980 0023 3E       		.uleb128 0x3e
+ 2981 0024 0B       		.uleb128 0xb
+ 2982 0025 03       		.uleb128 0x3
+ 2983 0026 08       		.uleb128 0x8
+ 2984 0027 00       		.byte	0
+ 2985 0028 00       		.byte	0
+ 2986 0029 04       		.uleb128 0x4
+ 2987 002a 16       		.uleb128 0x16
+ 2988 002b 00       		.byte	0
+ 2989 002c 03       		.uleb128 0x3
+ 2990 002d 0E       		.uleb128 0xe
+ 2991 002e 3A       		.uleb128 0x3a
+ 2992 002f 0B       		.uleb128 0xb
+ 2993 0030 3B       		.uleb128 0x3b
+ 2994 0031 05       		.uleb128 0x5
+ 2995 0032 49       		.uleb128 0x49
+ 2996 0033 13       		.uleb128 0x13
+ 2997 0034 00       		.byte	0
+ 2998 0035 00       		.byte	0
+ 2999 0036 05       		.uleb128 0x5
+ 3000 0037 2E       		.uleb128 0x2e
+ 3001 0038 01       		.byte	0x1
+ 3002 0039 3F       		.uleb128 0x3f
+ 3003 003a 19       		.uleb128 0x19
+ 3004 003b 03       		.uleb128 0x3
+ 3005 003c 0E       		.uleb128 0xe
+ 3006 003d 3A       		.uleb128 0x3a
+ 3007 003e 0B       		.uleb128 0xb
+ 3008 003f 3B       		.uleb128 0x3b
+ 3009 0040 0B       		.uleb128 0xb
+ 3010 0041 27       		.uleb128 0x27
+ 3011 0042 19       		.uleb128 0x19
+ 3012 0043 11       		.uleb128 0x11
+ 3013 0044 01       		.uleb128 0x1
+ 3014 0045 12       		.uleb128 0x12
+ 3015 0046 06       		.uleb128 0x6
+ 3016 0047 40       		.uleb128 0x40
+ 3017 0048 18       		.uleb128 0x18
+ 3018 0049 9742     		.uleb128 0x2117
+ 3019 004b 19       		.uleb128 0x19
+ 3020 004c 01       		.uleb128 0x1
+ 3021 004d 13       		.uleb128 0x13
+ 3022 004e 00       		.byte	0
+ 3023 004f 00       		.byte	0
+ 3024 0050 06       		.uleb128 0x6
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 57
+
+
+ 3025 0051 898201   		.uleb128 0x4109
+ 3026 0054 00       		.byte	0
+ 3027 0055 11       		.uleb128 0x11
+ 3028 0056 01       		.uleb128 0x1
+ 3029 0057 31       		.uleb128 0x31
+ 3030 0058 13       		.uleb128 0x13
+ 3031 0059 00       		.byte	0
+ 3032 005a 00       		.byte	0
+ 3033 005b 07       		.uleb128 0x7
+ 3034 005c 898201   		.uleb128 0x4109
+ 3035 005f 01       		.byte	0x1
+ 3036 0060 11       		.uleb128 0x11
+ 3037 0061 01       		.uleb128 0x1
+ 3038 0062 31       		.uleb128 0x31
+ 3039 0063 13       		.uleb128 0x13
+ 3040 0064 01       		.uleb128 0x1
+ 3041 0065 13       		.uleb128 0x13
+ 3042 0066 00       		.byte	0
+ 3043 0067 00       		.byte	0
+ 3044 0068 08       		.uleb128 0x8
+ 3045 0069 8A8201   		.uleb128 0x410a
+ 3046 006c 00       		.byte	0
+ 3047 006d 02       		.uleb128 0x2
+ 3048 006e 18       		.uleb128 0x18
+ 3049 006f 9142     		.uleb128 0x2111
+ 3050 0071 18       		.uleb128 0x18
+ 3051 0072 00       		.byte	0
+ 3052 0073 00       		.byte	0
+ 3053 0074 09       		.uleb128 0x9
+ 3054 0075 898201   		.uleb128 0x4109
+ 3055 0078 01       		.byte	0x1
+ 3056 0079 11       		.uleb128 0x11
+ 3057 007a 01       		.uleb128 0x1
+ 3058 007b 31       		.uleb128 0x31
+ 3059 007c 13       		.uleb128 0x13
+ 3060 007d 00       		.byte	0
+ 3061 007e 00       		.byte	0
+ 3062 007f 0A       		.uleb128 0xa
+ 3063 0080 2E       		.uleb128 0x2e
+ 3064 0081 01       		.byte	0x1
+ 3065 0082 3F       		.uleb128 0x3f
+ 3066 0083 19       		.uleb128 0x19
+ 3067 0084 03       		.uleb128 0x3
+ 3068 0085 0E       		.uleb128 0xe
+ 3069 0086 3A       		.uleb128 0x3a
+ 3070 0087 0B       		.uleb128 0xb
+ 3071 0088 3B       		.uleb128 0x3b
+ 3072 0089 0B       		.uleb128 0xb
+ 3073 008a 49       		.uleb128 0x49
+ 3074 008b 13       		.uleb128 0x13
+ 3075 008c 8701     		.uleb128 0x87
+ 3076 008e 19       		.uleb128 0x19
+ 3077 008f 11       		.uleb128 0x11
+ 3078 0090 01       		.uleb128 0x1
+ 3079 0091 12       		.uleb128 0x12
+ 3080 0092 06       		.uleb128 0x6
+ 3081 0093 40       		.uleb128 0x40
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 58
+
+
+ 3082 0094 18       		.uleb128 0x18
+ 3083 0095 9742     		.uleb128 0x2117
+ 3084 0097 19       		.uleb128 0x19
+ 3085 0098 01       		.uleb128 0x1
+ 3086 0099 13       		.uleb128 0x13
+ 3087 009a 00       		.byte	0
+ 3088 009b 00       		.byte	0
+ 3089 009c 0B       		.uleb128 0xb
+ 3090 009d 34       		.uleb128 0x34
+ 3091 009e 00       		.byte	0
+ 3092 009f 03       		.uleb128 0x3
+ 3093 00a0 0E       		.uleb128 0xe
+ 3094 00a1 3A       		.uleb128 0x3a
+ 3095 00a2 0B       		.uleb128 0xb
+ 3096 00a3 3B       		.uleb128 0x3b
+ 3097 00a4 0B       		.uleb128 0xb
+ 3098 00a5 49       		.uleb128 0x49
+ 3099 00a6 13       		.uleb128 0x13
+ 3100 00a7 3F       		.uleb128 0x3f
+ 3101 00a8 19       		.uleb128 0x19
+ 3102 00a9 02       		.uleb128 0x2
+ 3103 00aa 18       		.uleb128 0x18
+ 3104 00ab 00       		.byte	0
+ 3105 00ac 00       		.byte	0
+ 3106 00ad 0C       		.uleb128 0xc
+ 3107 00ae 01       		.uleb128 0x1
+ 3108 00af 01       		.byte	0x1
+ 3109 00b0 49       		.uleb128 0x49
+ 3110 00b1 13       		.uleb128 0x13
+ 3111 00b2 01       		.uleb128 0x1
+ 3112 00b3 13       		.uleb128 0x13
+ 3113 00b4 00       		.byte	0
+ 3114 00b5 00       		.byte	0
+ 3115 00b6 0D       		.uleb128 0xd
+ 3116 00b7 21       		.uleb128 0x21
+ 3117 00b8 00       		.byte	0
+ 3118 00b9 49       		.uleb128 0x49
+ 3119 00ba 13       		.uleb128 0x13
+ 3120 00bb 2F       		.uleb128 0x2f
+ 3121 00bc 0B       		.uleb128 0xb
+ 3122 00bd 00       		.byte	0
+ 3123 00be 00       		.byte	0
+ 3124 00bf 0E       		.uleb128 0xe
+ 3125 00c0 26       		.uleb128 0x26
+ 3126 00c1 00       		.byte	0
+ 3127 00c2 49       		.uleb128 0x49
+ 3128 00c3 13       		.uleb128 0x13
+ 3129 00c4 00       		.byte	0
+ 3130 00c5 00       		.byte	0
+ 3131 00c6 0F       		.uleb128 0xf
+ 3132 00c7 21       		.uleb128 0x21
+ 3133 00c8 00       		.byte	0
+ 3134 00c9 49       		.uleb128 0x49
+ 3135 00ca 13       		.uleb128 0x13
+ 3136 00cb 2F       		.uleb128 0x2f
+ 3137 00cc 05       		.uleb128 0x5
+ 3138 00cd 00       		.byte	0
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 59
+
+
+ 3139 00ce 00       		.byte	0
+ 3140 00cf 10       		.uleb128 0x10
+ 3141 00d0 2E       		.uleb128 0x2e
+ 3142 00d1 00       		.byte	0
+ 3143 00d2 3F       		.uleb128 0x3f
+ 3144 00d3 19       		.uleb128 0x19
+ 3145 00d4 3C       		.uleb128 0x3c
+ 3146 00d5 19       		.uleb128 0x19
+ 3147 00d6 6E       		.uleb128 0x6e
+ 3148 00d7 0E       		.uleb128 0xe
+ 3149 00d8 03       		.uleb128 0x3
+ 3150 00d9 0E       		.uleb128 0xe
+ 3151 00da 3A       		.uleb128 0x3a
+ 3152 00db 0B       		.uleb128 0xb
+ 3153 00dc 3B       		.uleb128 0x3b
+ 3154 00dd 0B       		.uleb128 0xb
+ 3155 00de 00       		.byte	0
+ 3156 00df 00       		.byte	0
+ 3157 00e0 00       		.byte	0
+ 3158              		.section	.debug_aranges,"",%progbits
+ 3159 0000 44000000 		.4byte	0x44
+ 3160 0004 0200     		.2byte	0x2
+ 3161 0006 00000000 		.4byte	.Ldebug_info0
+ 3162 000a 04       		.byte	0x4
+ 3163 000b 00       		.byte	0
+ 3164 000c 0000     		.2byte	0
+ 3165 000e 0000     		.2byte	0
+ 3166 0010 00000000 		.4byte	.LFB32
+ 3167 0014 48000000 		.4byte	.LFE32-.LFB32
+ 3168 0018 00000000 		.4byte	.LFB33
+ 3169 001c A0000000 		.4byte	.LFE33-.LFB33
+ 3170 0020 00000000 		.4byte	.LFB34
+ 3171 0024 40000000 		.4byte	.LFE34-.LFB34
+ 3172 0028 00000000 		.4byte	.LFB35
+ 3173 002c 1C000000 		.4byte	.LFE35-.LFB35
+ 3174 0030 00000000 		.4byte	.LFB36
+ 3175 0034 1C000000 		.4byte	.LFE36-.LFB36
+ 3176 0038 00000000 		.4byte	.LFB37
+ 3177 003c B8000000 		.4byte	.LFE37-.LFB37
+ 3178 0040 00000000 		.4byte	0
+ 3179 0044 00000000 		.4byte	0
+ 3180              		.section	.debug_ranges,"",%progbits
+ 3181              	.Ldebug_ranges0:
+ 3182 0000 00000000 		.4byte	.LFB32
+ 3183 0004 48000000 		.4byte	.LFE32
+ 3184 0008 00000000 		.4byte	.LFB33
+ 3185 000c A0000000 		.4byte	.LFE33
+ 3186 0010 00000000 		.4byte	.LFB34
+ 3187 0014 40000000 		.4byte	.LFE34
+ 3188 0018 00000000 		.4byte	.LFB35
+ 3189 001c 1C000000 		.4byte	.LFE35
+ 3190 0020 00000000 		.4byte	.LFB36
+ 3191 0024 1C000000 		.4byte	.LFE36
+ 3192 0028 00000000 		.4byte	.LFB37
+ 3193 002c B8000000 		.4byte	.LFE37
+ 3194 0030 00000000 		.4byte	0
+ 3195 0034 00000000 		.4byte	0
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 60
+
+
+ 3196              		.section	.debug_line,"",%progbits
+ 3197              	.Ldebug_line0:
+ 3198 0000 E4010000 		.section	.debug_str,"MS",%progbits,1
+ 3198      02003A01 
+ 3198      00000201 
+ 3198      FB0E0D00 
+ 3198      01010101 
+ 3199              	.LASF6:
+ 3200 0000 6C6F6E67 		.ascii	"long long int\000"
+ 3200      206C6F6E 
+ 3200      6720696E 
+ 3200      7400
+ 3201              	.LASF41:
+ 3202 000e 4C43445F 		.ascii	"LCD_Char_1_WriteControl\000"
+ 3202      43686172 
+ 3202      5F315F57 
+ 3202      72697465 
+ 3202      436F6E74 
+ 3203              	.LASF53:
+ 3204 0026 6973725F 		.ascii	"isr_Start_1_StartEx\000"
+ 3204      53746172 
+ 3204      745F315F 
+ 3204      53746172 
+ 3204      74457800 
+ 3205              	.LASF39:
+ 3206 003a 49444143 		.ascii	"IDAC_1_SetValue\000"
+ 3206      5F315F53 
+ 3206      65745661 
+ 3206      6C756500 
+ 3207              	.LASF33:
+ 3208 004a 47726565 		.ascii	"Green_Led_Start_Write\000"
+ 3208      6E5F4C65 
+ 3208      645F5374 
+ 3208      6172745F 
+ 3208      57726974 
+ 3209              	.LASF19:
+ 3210 0060 496E5072 		.ascii	"InProgres\000"
+ 3210      6F677265 
+ 3210      7300
+ 3211              	.LASF4:
+ 3212 006a 6C6F6E67 		.ascii	"long int\000"
+ 3212      20696E74 
+ 3212      00
+ 3213              	.LASF28:
+ 3214 0073 53616D70 		.ascii	"Samples\000"
+ 3214      6C657300 
+ 3215              	.LASF44:
+ 3216 007b 6973725F 		.ascii	"isr_Start_1_ClearPending\000"
+ 3216      53746172 
+ 3216      745F315F 
+ 3216      436C6561 
+ 3216      7250656E 
+ 3217              	.LASF59:
+ 3218 0094 75696E74 		.ascii	"uint8\000"
+ 3218      3800
+ 3219              	.LASF50:
+ 3220 009a 6973725F 		.ascii	"isr_NextSample_StartEx\000"
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 61
+
+
+ 3220      4E657874 
+ 3220      53616D70 
+ 3220      6C655F53 
+ 3220      74617274 
+ 3221              	.LASF38:
+ 3222 00b1 54696D65 		.ascii	"Timer_Duration_Start\000"
+ 3222      725F4475 
+ 3222      72617469 
+ 3222      6F6E5F53 
+ 3222      74617274 
+ 3223              	.LASF9:
+ 3224 00c6 666C6F61 		.ascii	"float\000"
+ 3224      7400
+ 3225              	.LASF48:
+ 3226 00cc 4C43445F 		.ascii	"LCD_Char_1_Start\000"
+ 3226      43686172 
+ 3226      5F315F53 
+ 3226      74617274 
+ 3226      00
+ 3227              	.LASF20:
+ 3228 00dd 4D6F6465 		.ascii	"Mode\000"
+ 3228      00
+ 3229              	.LASF36:
+ 3230 00e2 4C43445F 		.ascii	"LCD_Char_1_PrintString\000"
+ 3230      43686172 
+ 3230      5F315F50 
+ 3230      72696E74 
+ 3230      53747269 
+ 3231              	.LASF5:
+ 3232 00f9 6C6F6E67 		.ascii	"long unsigned int\000"
+ 3232      20756E73 
+ 3232      69676E65 
+ 3232      6420696E 
+ 3232      7400
+ 3233              	.LASF42:
+ 3234 010b 6973725F 		.ascii	"isr_Start_1_Enable\000"
+ 3234      53746172 
+ 3234      745F315F 
+ 3234      456E6162 
+ 3234      6C6500
+ 3235              	.LASF3:
+ 3236 011e 73686F72 		.ascii	"short unsigned int\000"
+ 3236      7420756E 
+ 3236      7369676E 
+ 3236      65642069 
+ 3236      6E7400
+ 3237              	.LASF45:
+ 3238 0131 6973725F 		.ascii	"isr_Start_ClearPending\000"
+ 3238      53746172 
+ 3238      745F436C 
+ 3238      65617250 
+ 3238      656E6469 
+ 3239              	.LASF40:
+ 3240 0148 54696D65 		.ascii	"Timer_Duration_Stop\000"
+ 3240      725F4475 
+ 3240      72617469 
+ 3240      6F6E5F53 
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 62
+
+
+ 3240      746F7000 
+ 3241              	.LASF29:
+ 3242 015c 53616D70 		.ascii	"SamplesExpFadingMod1\000"
+ 3242      6C657345 
+ 3242      78704661 
+ 3242      64696E67 
+ 3242      4D6F6431 
+ 3243              	.LASF30:
+ 3244 0171 53616D70 		.ascii	"SamplesExpFadingMod2\000"
+ 3244      6C657345 
+ 3244      78704661 
+ 3244      64696E67 
+ 3244      4D6F6432 
+ 3245              	.LASF47:
+ 3246 0186 4D6F6465 		.ascii	"Mode_2_LED_Write\000"
+ 3246      5F325F4C 
+ 3246      45445F57 
+ 3246      72697465 
+ 3246      00
+ 3247              	.LASF10:
+ 3248 0197 646F7562 		.ascii	"double\000"
+ 3248      6C6500
+ 3249              	.LASF52:
+ 3250 019e 6973725F 		.ascii	"isr_Start_StartEx\000"
+ 3250      53746172 
+ 3250      745F5374 
+ 3250      61727445 
+ 3250      7800
+ 3251              	.LASF2:
+ 3252 01b0 73686F72 		.ascii	"short int\000"
+ 3252      7420696E 
+ 3252      7400
+ 3253              	.LASF31:
+ 3254 01ba 6973725F 		.ascii	"isr_Start_Disable\000"
+ 3254      53746172 
+ 3254      745F4469 
+ 3254      7361626C 
+ 3254      6500
+ 3255              	.LASF60:
+ 3256 01cc 6D61696E 		.ascii	"main\000"
+ 3256      00
+ 3257              	.LASF17:
+ 3258 01d1 4953525F 		.ascii	"ISR_Mode_1\000"
+ 3258      4D6F6465 
+ 3258      5F3100
+ 3259              	.LASF18:
+ 3260 01dc 4953525F 		.ascii	"ISR_Mode_2\000"
+ 3260      4D6F6465 
+ 3260      5F3200
+ 3261              	.LASF8:
+ 3262 01e7 756E7369 		.ascii	"unsigned int\000"
+ 3262      676E6564 
+ 3262      20696E74 
+ 3262      00
+ 3263              	.LASF32:
+ 3264 01f4 6973725F 		.ascii	"isr_Start_1_Disable\000"
+ 3264      53746172 
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 63
+
+
+ 3264      745F315F 
+ 3264      44697361 
+ 3264      626C6500 
+ 3265              	.LASF54:
+ 3266 0208 6973725F 		.ascii	"isr_Mode_1_StartEx\000"
+ 3266      4D6F6465 
+ 3266      5F315F53 
+ 3266      74617274 
+ 3266      457800
+ 3267              	.LASF16:
+ 3268 021b 4953525F 		.ascii	"ISR_StopGenerate\000"
+ 3268      53746F70 
+ 3268      47656E65 
+ 3268      72617465 
+ 3268      00
+ 3269              	.LASF7:
+ 3270 022c 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 3270      206C6F6E 
+ 3270      6720756E 
+ 3270      7369676E 
+ 3270      65642069 
+ 3271              	.LASF37:
+ 3272 0243 54696D65 		.ascii	"Timer_Main_Start\000"
+ 3272      725F4D61 
+ 3272      696E5F53 
+ 3272      74617274 
+ 3272      00
+ 3273              	.LASF0:
+ 3274 0254 7369676E 		.ascii	"signed char\000"
+ 3274      65642063 
+ 3274      68617200 
+ 3275              	.LASF56:
+ 3276 0260 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 3276      43313120 
+ 3276      352E342E 
+ 3276      31203230 
+ 3276      31363036 
+ 3277 0293 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m0 -mthumb -g -O"
+ 3277      20726576 
+ 3277      6973696F 
+ 3277      6E203233 
+ 3277      37373135 
+ 3278 02c6 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 3278      66756E63 
+ 3278      74696F6E 
+ 3278      2D736563 
+ 3278      74696F6E 
+ 3279              	.LASF21:
+ 3280 02ee 4D61696E 		.ascii	"MainIdx\000"
+ 3280      49647800 
+ 3281              	.LASF13:
+ 3282 02f6 73697A65 		.ascii	"sizetype\000"
+ 3282      74797065 
+ 3282      00
+ 3283              	.LASF24:
+ 3284 02ff 50726F63 		.ascii	"ProcessedSample\000"
+ 3284      65737365 
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 64
+
+
+ 3284      6453616D 
+ 3284      706C6500 
+ 3285              	.LASF46:
+ 3286 030f 4D6F6465 		.ascii	"Mode_1_LED_Write\000"
+ 3286      5F315F4C 
+ 3286      45445F57 
+ 3286      72697465 
+ 3286      00
+ 3287              	.LASF57:
+ 3288 0320 6D61696E 		.ascii	"main.c\000"
+ 3288      2E6300
+ 3289              	.LASF11:
+ 3290 0327 63686172 		.ascii	"char\000"
+ 3290      00
+ 3291              	.LASF35:
+ 3292 032c 4C43445F 		.ascii	"LCD_Char_1_Position\000"
+ 3292      43686172 
+ 3292      5F315F50 
+ 3292      6F736974 
+ 3292      696F6E00 
+ 3293              	.LASF23:
+ 3294 0340 4D61696E 		.ascii	"MainIdxExpFadingMod2\000"
+ 3294      49647845 
+ 3294      78704661 
+ 3294      64696E67 
+ 3294      4D6F6432 
+ 3295              	.LASF25:
+ 3296 0355 4E756D4F 		.ascii	"NumOfSamplesInPeriod\000"
+ 3296      6653616D 
+ 3296      706C6573 
+ 3296      496E5065 
+ 3296      72696F64 
+ 3297              	.LASF22:
+ 3298 036a 4D61696E 		.ascii	"MainIdxExpFadingMod1\000"
+ 3298      49647845 
+ 3298      78704661 
+ 3298      64696E67 
+ 3298      4D6F6431 
+ 3299              	.LASF26:
+ 3300 037f 4E756D4F 		.ascii	"NumOfSamplesInPeriodExpFadingMod1\000"
+ 3300      6653616D 
+ 3300      706C6573 
+ 3300      496E5065 
+ 3300      72696F64 
+ 3301              	.LASF27:
+ 3302 03a1 4E756D4F 		.ascii	"NumOfSamplesInPeriodExpFadingMod2\000"
+ 3302      6653616D 
+ 3302      706C6573 
+ 3302      496E5065 
+ 3302      72696F64 
+ 3303              	.LASF14:
+ 3304 03c3 4953525F 		.ascii	"ISR_SignalStart\000"
+ 3304      5369676E 
+ 3304      616C5374 
+ 3304      61727400 
+ 3305              	.LASF43:
+ 3306 03d3 6973725F 		.ascii	"isr_Start_Enable\000"
+ARM GAS  C:\Users\HP\AppData\Local\Temp\cc76JGOS.s 			page 65
+
+
+ 3306      53746172 
+ 3306      745F456E 
+ 3306      61626C65 
+ 3306      00
+ 3307              	.LASF49:
+ 3308 03e4 49444143 		.ascii	"IDAC_1_Start\000"
+ 3308      5F315F53 
+ 3308      74617274 
+ 3308      00
+ 3309              	.LASF12:
+ 3310 03f1 6C6F6E67 		.ascii	"long double\000"
+ 3310      20646F75 
+ 3310      626C6500 
+ 3311              	.LASF15:
+ 3312 03fd 4953525F 		.ascii	"ISR_GenerateSample\000"
+ 3312      47656E65 
+ 3312      72617465 
+ 3312      53616D70 
+ 3312      6C6500
+ 3313              	.LASF58:
+ 3314 0410 433A5C55 		.ascii	"C:\\Users\\HP\\Documents\\PSoC Creator\\PWM\\Kursov"
+ 3314      73657273 
+ 3314      5C48505C 
+ 3314      446F6375 
+ 3314      6D656E74 
+ 3315 043d 615F7072 		.ascii	"a_pryklad\\Turchyn_TR-41z_KR.cydsn\000"
+ 3315      796B6C61 
+ 3315      645C5475 
+ 3315      72636879 
+ 3315      6E5F5452 
+ 3316              	.LASF1:
+ 3317 045f 756E7369 		.ascii	"unsigned char\000"
+ 3317      676E6564 
+ 3317      20636861 
+ 3317      7200
+ 3318              	.LASF34:
+ 3319 046d 47726565 		.ascii	"Green_Led_Start_Board_Write\000"
+ 3319      6E5F4C65 
+ 3319      645F5374 
+ 3319      6172745F 
+ 3319      426F6172 
+ 3320              	.LASF55:
+ 3321 0489 6973725F 		.ascii	"isr_Mode_2_StartEx\000"
+ 3321      4D6F6465 
+ 3321      5F325F53 
+ 3321      74617274 
+ 3321      457800
+ 3322              	.LASF51:
+ 3323 049c 6973725F 		.ascii	"isr_StopSamples_StartEx\000"
+ 3323      53746F70 
+ 3323      53616D70 
+ 3323      6C65735F 
+ 3323      53746172 
+ 3324              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

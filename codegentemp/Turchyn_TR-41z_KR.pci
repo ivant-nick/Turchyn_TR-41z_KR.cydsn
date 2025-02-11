@@ -1,0 +1,25 @@
+# Turchyn_TR-41z_KR
+# 2024-04-06 13:05:10Z
+
+# IO_2@[IOP=(3)][IoId=(2)] is reserved: SWDDebugEnabled
+dont_use_io iocell 3 2
+# IO_3@[IOP=(3)][IoId=(3)] is reserved: SWDDebugEnabled
+dont_use_io iocell 3 3
+set_location "ClockGenBlock" m0s8clockgenblockcell -1 -1 0
+set_io "WaveOutput(0)" iocell 3 0
+set_io "Start_Button_Board(0)" iocell 0 7
+set_io "Start_Button_External(0)" iocell 0 0
+set_io "Green_Led_Start(0)" iocell 3 5
+set_io "Green_Led_Start_Board(0)" iocell 0 2
+set_io "Mode_1_LED(0)" iocell 3 4
+set_io "Mode_2_LED(0)" iocell 1 0
+set_io "Mode_1_Button(0)" iocell 3 6
+set_io "Mode_2_Button(0)" iocell 2 7
+set_io "\LCD_Char_1:LCDPort(0)\" iocell 2 0
+set_io "\LCD_Char_1:LCDPort(1)\" iocell 2 1
+set_io "\LCD_Char_1:LCDPort(2)\" iocell 2 2
+set_io "\LCD_Char_1:LCDPort(3)\" iocell 2 3
+set_io "\LCD_Char_1:LCDPort(4)\" iocell 2 4
+set_io "\LCD_Char_1:LCDPort(5)\" iocell 2 5
+set_io "\LCD_Char_1:LCDPort(6)\" iocell 2 6
+set_location "\IDAC_1:cy_psoc4_idac\" p4csidac8cell -1 -1 0

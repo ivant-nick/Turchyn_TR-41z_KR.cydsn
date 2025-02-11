@@ -1,0 +1,7 @@
+C:\Users\HP\Documents\PSoC Creator\Turchyn_TR-41z_KR.cydsn\Turchyn_TR-41z_KR.cyprj|c47bab82-6359-4cff-93f3-461cdf0a150c
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|8801fc8c-166c-4c86-bc7a-896dd09b5a85
+C:\Users\HP\Documents\PSoC Creator\4.4\Downloads ( 4.4).cylib\Downloads ( 4.4).cyprj|de72a4c3-df10-4325-8206-02665a5e22d2
+C:\Users\HP\Documents\PSoC Creator\4.3\Downloads ( 4.3).cylib\Downloads ( 4.3).cyprj|a0856ec8-6cd0-4c74-baf3-bfeb6169f214
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|6becbc5e-e85d-464a-a9b9-74a24c9530af
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|7812dcc7-8ea2-4d2f-a4f5-e55661357816
+C:\Program Files (x86)\Cypress\PSoC Creator\4.4\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|2fb74034-bf5d-45a9-928b-f69e421ee059
